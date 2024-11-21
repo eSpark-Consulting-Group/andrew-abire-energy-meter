@@ -3708,7 +3708,7 @@ void setup() {
 
   esp_task_wdt_config_t esp_task_wdt = {
     .timeout_ms = WDT_TIMEOUT,
-    .idle_core_mask = 0x2,
+    .idle_core_mask = 0x3,
     .trigger_panic = true
   };
   esp_task_wdt_init(&esp_task_wdt);       //Enable panic so ESP32 restarts
@@ -3755,7 +3755,8 @@ void loop() {
     // reset ESP32 if communication from controller has been lost for 30 seconds
     if (espResetCounter > 30) {
       espResetCounter = 0;
-      delay(10000);  // This causes ESP32 reset by watchdog timeout
+      esp_task_wdt_reset(); // debug: no heartbeat 
+      // delay(10000);         // This causes ESP32 reset by watchdog timeout
     } else {
       esp_task_wdt_reset();  //feed watchdog
     }
