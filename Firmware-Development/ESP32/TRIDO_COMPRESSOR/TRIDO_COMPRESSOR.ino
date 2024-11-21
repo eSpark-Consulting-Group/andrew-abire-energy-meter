@@ -3705,7 +3705,13 @@ void setup() {
     Serial.println(ESP.getFreeHeap());*/
   // Watchdog
   wdtResetCount = millis();
-  esp_task_wdt_init(WDT_TIMEOUT, true);  //Enable panic so ESP32 restarts
+
+  esp_task_wdt_config_t esp_task_wdt = {
+    .timeout_ms = WDT_TIMEOUT,
+    .idle_core_mask = 0x2,
+    .trigger_panic = true
+  };
+  esp_task_wdt_init(&esp_task_wdt);       //Enable panic so ESP32 restarts
   esp_task_wdt_add(NULL);                //Add current thread to WDT watch
 }
 
