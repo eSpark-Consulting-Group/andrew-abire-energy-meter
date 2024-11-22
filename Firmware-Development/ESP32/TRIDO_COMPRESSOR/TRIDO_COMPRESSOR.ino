@@ -2417,6 +2417,7 @@ void taskScankey(void *parameter) {
   for (;;) {
     Key = kp.getKey();  //scan a key
     if (Key) {
+      Serial.printf("Key Pressed: %c\n", Key);
       funcUpdate = true;
       switch (Key) {
         case KEY_ESC:
@@ -3523,7 +3524,7 @@ void setup() {
   Serial.begin(SERIAL0_BAUD);  //Serial 0, IO1=TX0, IO3=RX0
   while (!Serial) {};          //Wait for Serial 0
   // Serial2
-  Serial2.begin(SERIAL2_BAUD);  //Serial 2, IO17=TX2, IO16=RX2
+  Serial2.begin(SERIAL2_BAUD, SERIAL_8N1, MODBUS_CH1_TX_PIN, MODBUS_CH1_RX_PIN); //Serial 2, IO17=TX2, IO16=RX2
   while (!Serial2) {};          //Wait for Serial 2
   // LCD
   u8g2.begin();
