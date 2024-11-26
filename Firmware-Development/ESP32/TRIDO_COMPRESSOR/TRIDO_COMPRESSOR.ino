@@ -2417,7 +2417,6 @@ void taskScankey(void *parameter) {
   for (;;) {
     Key = kp.getKey();  //scan a key
     if (Key) {
-      Serial.printf("Key Pressed: %c\n", Key);
       funcUpdate = true;
       switch (Key) {
         case KEY_ESC:
@@ -2591,6 +2590,7 @@ void taskMbClient(void *parameter) {
         //reg 16 - 24
         err = mbClient.addRequest(FC03_SOMI /*token*/, 1 /*server_id*/, READ_HOLD_REGISTER /*FC*/, 16 /*reg*/, 9 /*count*/);
         debugMbRequest(err);
+        // if(err == SUCCESS) Serial.println("FC03_SOMI Successful");
         break;
       case FC16_MOSI:
         //reg 0 heartbeat out ->
@@ -3689,7 +3689,7 @@ void setup() {
   mbClient.onErrorHandler(&handleError);  //Response Error callback function
   mbClient.setTimeout(100);               //Set time out
   mbClient.begin(0);                      // Start ModbusClientRTU background task on core 0
-                                          /*
+    /*
     setCpuFrequencyMhz(10);
     int Freq = getCpuFrequencyMhz();
     Serial.print("CPU Freq = ");
@@ -3756,7 +3756,6 @@ void loop() {
     // reset ESP32 if communication from controller has been lost for 30 seconds
     if (espResetCounter > 30) {
       espResetCounter = 0;
-      esp_task_wdt_reset(); // debug: no heartbeat 
       // delay(10000);         // This causes ESP32 reset by watchdog timeout
     } else {
       esp_task_wdt_reset();  //feed watchdog
