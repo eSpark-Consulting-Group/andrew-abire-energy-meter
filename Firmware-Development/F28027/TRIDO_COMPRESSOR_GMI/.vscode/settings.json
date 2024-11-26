@@ -1,5 +1,8 @@
 {
     "files.associations": {
-        "scidrv.h": "c"
+        "scidrv.h": "c",
+        "modbus_user.h": "c",
+        "modbus_slave.h": "c",
+        "hal_obj.h": "c"
     }
 }
