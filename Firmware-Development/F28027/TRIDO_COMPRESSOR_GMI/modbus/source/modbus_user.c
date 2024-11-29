@@ -283,7 +283,7 @@ void modbus_loop()
         // if tank pressure is higher than stop pressure, motor off
         if ((error.bit.ovperr) || (error.bit.uvperr)
          || (error.bit.settingerr) || (error.bit.snserr)
-         || (error.bit.ocperr) || (error.bit.rpmerr))
+         || (error.bit.ocperr || error.bit.ocpwrn) || (error.bit.rpmerr))
         {
             gMotorVars.Flag_Run_Identify = false;
         }
