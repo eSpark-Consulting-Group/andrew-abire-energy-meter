@@ -3,8 +3,8 @@
 
 // SETTING LIMIT
 #define MAXIMUM_RPM                     400  //400 RPM
-#define MINIMUM_OCP_DCAMP               25   //2.5A
-#define MAXIMUM_OCP_DCAMP               250  //25.0A
+//#define MINIMUM_OCP_DCAMP               25   //2.5A
+//#define MAXIMUM_OCP_DCAMP               250  //25.0A
 
 #define MINIMUM_DCV_INPUT               210  //21.0V
 #define MAXIMUM_DCV_INPUT               360  //36.0V
@@ -146,12 +146,27 @@
 
 // OTHERS
 #define MAX_MENU_PAGE          14
+
+//
+// Screen pixel locations
 //
 #define MENU_TITLE_YPOS        10
 #define MENU_LINE1_YPOS        23
 #define MENU_LINE2_YPOS        36
 #define MENU_LINE3_YPOS        49
 #define MENU_LINE4_YPOS        62
+
+//
+// Indent from LHS of screen for presentation
+//
+#define MENU_COL1_XPOS         0
+#define MENU_COL2_XPOS         136
+
+
+// 
+
+//
+// Display parameters
 //
 #define MAX_LCD_WIDTH          256
 #define MAX_LCD_HEIGHT         64
@@ -163,7 +178,8 @@ typedef enum
   MENU_FUNC_IDLE               = 0x00,
   MENU_FUNC_EXIT_SAVE          = 0x01,
   MENU_FUNC_EXIT_NO_SAVE       = 0x02,
-  MENU_FUNC_CONFIRM            = 0x03
+  MENU_FUNC_CONFIRM            = 0x03,
+  MENU_FUNC_WAIT_CONTROLLER    = 0x04
 } FUNCSTATE_E;
 
 enum
@@ -172,9 +188,19 @@ enum
   REMOTE_MODE                  = 0x01,
   DIO_MODE                     = 0x02
 };
+
 enum
 {
   ON                           = 0x01,
   OFF                          = 0x00
 };
+
+enum
+{
+  MOTOR_STATE_UNDEFINED        = 0x00,
+  MOTOR_STATE_OFF,
+  MOTOR_STATE_RUN,
+  MOTOR_STATE_HOLD,
+};
+
 #endif

@@ -2,7 +2,20 @@
      Project: Compressor Application
      Software Version: see SOFTWARE_VERSION_STRING[] below
      Hardware Version: see HARDWARE_VERSION_STRING[] below
-     Modified: 27/03/2023
+     Modified: 22/05/2023
+
+     Release: 2024.06.03 - jkrzywicki
+     - removed "lock factory mode" lock-out which could cause the feature to be locked-out forever
+     - added low-voltage restart
+     - subtle changes to support v5 of the ESP32 API
+     - updated eModbus to release 1.7.2
+     - updated VERSION_STRING macros for less ambiguity, the POWERCTL will be read from the
+    actual board in a future release
+
+    Release 2024.06.11 - jkrzywicki
+    - rolled back ESP32 API to v4 
+  
+j:\Projects\Trido\Townes Controller\Software\2024.06.03\ESP32\TRIDO_COMPRESSOR\src\modbus_user.h
  *******************************************************************************************************/
 #include <EEPROM.h>
 #include <esp_task_wdt.h>
@@ -23,9 +36,9 @@
 #include "src\eModbus\src\ModbusServerRTU.h"
 #include "src\eModbus\src\CoilData.h"
 
-const char HARDWARE_VERSION_STRING[] = "YH_PB01_V6";
+const char POWERCTL_VERSION_STRING[] = "2024.06.03";
 //const char HARDWARE_VERSION_STRING[] = "YH_PB01_V5.001";
-const char SOFTWARE_VERSION_STRING[] = "2023.03.27";
+const char SYSTEMCTL_VERSION_STRING[] = "2024.06.03";
 
 //<! Set to 0 for manufacturing
 #define DEBUG_MODBUS_ERROR 0
@@ -33,8 +46,8 @@ const char SOFTWARE_VERSION_STRING[] = "2023.03.27";
 #define DEBUG_FUNCTION 0
 #define DEBUG_WRITEFLASH_FUNCTION 0
 
-//5 seconds Watchdog Timeout
-#define WDT_TIMEOUT 5
+// 5 seconds Watchdog Timeout
+#define WDT_TIMEOUT 5000
 
 //<! Global Variables / Objects--------------------------------------------------------/
 // General
@@ -63,8 +76,11 @@ bool updateEEPROM = false;
 unsigned int rbuf[EEPROM_SIZE];
 unsigned int wbuf[EEPROM_SIZE];
 
-//Motor
+// Motor
 CONTROL_T ctrl;  // Control Parameters Send To VFD
+bool startUpReset = true;
+u16 MINIMUM_OCP_DCAMP = 10;   // 1.0A
+u16 MAXIMUM_OCP_DCAMP = 100;  // 10.0A
 int currentIndexRam = 0;
 int currentIndexSaved = 0;
 int startIndexSaved = 0;
@@ -73,6 +89,9 @@ int startIndexSaved = 0;
 STATUS_T status;  // Status Read from VFD
 double rpm_filt = 0.0;
 double totalturns = 0.0;
+
+// 
+u32 nPreviousMotorState = MOTOR_STATE_UNDEFINED;
 
 TEMP_T temp;  // Modbus Parameters Send/Receive
 
@@ -111,38 +130,65 @@ const char protocol_arr[3][16] = {
   "ASCII",
   "TCP  "
 };
+
 const char parity_arr[3][16] = {
   "NONE",
   "ODD ",
   "EVEN"
 };
+
 const char onoff_arr[2][16] = {
   "SysOff",
   "SysOn "
 };
+
 const u32 baudRate[12] = {
   1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 256000, 512000, 921600
 };
+
 const char motorturnreset_arr[2][16] = {
   "MANUAL  ",
   "00:00:00"
 };
+
 const char disable_dio_mode_arr[2][16] = {
   "ENABLE ",
   "DISABLE"
 };
+
 const char comfailaction_arr[2][16] = {
   "NO ACTION ",
   "STOP MOTOR"
 };
+
 const char pressure_control_arr[3][16] = {
   "STOP MOTOR ",
   "DOUT3 OPEN ",
   "DOUT3 CLOSE"
 };
+
 const char yesno_arr[2][16] = {
   "NO ",
   "YES"
+};
+
+const char brdSeries_arr[2][16] = {
+  "A",
+  "D"
+};
+
+const char mtrModel_arr[5][16] = {
+  "TRIDO_25MM",
+  "TRIDO_35MM",
+  "TRIDO_50MM",
+  "TRIDO_75MM",
+  "TRIDO_GMI "
+};
+
+const char mode_arr[3][16] = {
+  "Local ",
+  "Remote",
+  "DIO   "
 };
 
 // RTC
@@ -198,6 +244,7 @@ const u8 menuItemPos1[10][2] = {
   { 0, 0 },
   { 0, 0 }
 };
+
 const u8 menuItemPos2[10][2] = {
   { 65 - 6, MENU_TITLE_YPOS },
   { 65 - 6, MENU_LINE1_YPOS },
@@ -859,7 +906,9 @@ bool getTime(DateTime dt, DATETIME_T *dt1) {
         ret = true;  //RTC ok
       } else {
         //RTC error
+#if DEBUG_FUNCTION        
         Serial.println("getTime(): check date and time error!");
+#endif        
         //xconvert(gStr1, "%d/%02d/%02d %02d:%02d:%02d", dt.year(), dt.month(), dt.day(), dt.hour(), dt.minute(), dt.second());
         //Serial.println(gStr1);
         *dt1 = { 2000, 1, 1, 0, 0, 0 };  //yyyymmdd,hhmmss,set to known value when error
@@ -964,7 +1013,7 @@ void setUserFunc2() {
       SetParaUint(138 /*lcd xpos*/, MENU_LINE3_YPOS, &status.motor.average_duty_alarm_percent.all, 3 /*length*/, 0 /*min*/, 100 /*max*/);
       break;
     case 3:
-      setCycletimeFunc(138, MENU_LINE4_YPOS);
+      setCycletimeFunc(MENU_COL2_XPOS, MENU_LINE4_YPOS);
       break;
   }
 }
@@ -975,10 +1024,10 @@ void setUserFunc2() {
 void setUserFunc3() {
   switch (selectedItem) {
     case 0:
-      SetParaU8str(138, MENU_LINE1_YPOS, &status.motor.pressure_control_method, 0, 2, pressure_control_arr);  //pressure control method [0=STOP MOTOR, 1=DOUT3 OPEN, 2=DOUT3 CLOSE]
+      SetParaU8str(MENU_COL2_XPOS, MENU_LINE1_YPOS, &status.motor.pressure_control_method, 0, 2, pressure_control_arr);  //pressure control method [0=STOP MOTOR, 1=DOUT3 OPEN, 2=DOUT3 CLOSE]
       break;
     case 1:
-      SetParaBoolstr(138, MENU_LINE2_YPOS, &toggleClearDuty, yesno_arr);  //0=NO ACTION, 1=CLEAR
+      SetParaBoolstr(MENU_COL2_XPOS, MENU_LINE2_YPOS, &toggleClearDuty, yesno_arr);  //0=NO ACTION, 1=CLEAR
       if (toggleClearDuty) {
         //reset runtime
         status.motor.runtime_sec = 0;
@@ -1011,25 +1060,14 @@ void setUserFunc3() {
       }
       break;
     case 2:
-      SetParaBoolstr(138, MENU_LINE3_YPOS, &status.motor.autoreset_motorturns, motorturnreset_arr);  // 1 = reset at 00:00:00, 0 = manual reset
+      SetParaBoolstr(MENU_COL2_XPOS, MENU_LINE3_YPOS, &status.motor.autoreset_motorturns, motorturnreset_arr);  // 1 = reset at 00:00:00, 0 = manual reset
       break;
     case 3:
-      SetParaBoolstr(138, MENU_LINE4_YPOS, &status.motor.disable_dio_mode, disable_dio_mode_arr);  // 1 = disable
+      SetParaBoolstr(MENU_COL2_XPOS, MENU_LINE4_YPOS, &status.motor.disable_dio_mode, disable_dio_mode_arr);  // 1 = disable
       //switch to local mode if DIO mode was used
       if (status.motor.disable_dio_mode) {
         if (ctrl.mode == DIO_MODE) (ctrl.mode = LOCAL_MODE);
       }
-      break;
-  }
-}
-
-//--------------------------
-// User Setting 4 f8
-//--------------------------
-void setUserFunc4() {
-  switch (selectedItem) {
-    case 0:
-      SetParaBoolstr(138, MENU_LINE1_YPOS, &ctrl.communication_fail_action, comfailaction_arr);
       break;
   }
 }
@@ -1303,7 +1341,7 @@ void confirmScadaSetting() {
   u8g2.setDrawColor(TEXT_COLOR_INVERTED);
   strcpy(usermsg[0], "SYSTEM REBOOT REQUIRED");
   strcpy(usermsg[1], "Do you want to reboot now?");
-  strcpy(usermsg[2], "YES(ENTER)/NO(ESC)");
+  strcpy(usermsg[2], "Yes (ENTER) / No (ESC)");
   u8g2.drawStr((MAX_LCD_WIDTH - strlen(usermsg[0]) * 7) / 2, 16, usermsg[0]);
   u8g2.setDrawColor(TEXT_COLOR_NORMAL);
   u8g2.drawStr((MAX_LCD_WIDTH - strlen(usermsg[1]) * 7) / 2, 32, usermsg[1]);
@@ -1359,13 +1397,13 @@ void setScadaFunc2() {
   if (funcResponse != MENU_FUNC_CONFIRM) {
     switch (selectedItem) {
       case 0:
-        SetParaUint(138, MENU_LINE1_YPOS, &scada_setting.discrete_addr.all, 5, 0, 65535 - scada_setting.max_discrete);  //discrete_addr
+        SetParaUint(MENU_COL2_XPOS, MENU_LINE1_YPOS, &scada_setting.discrete_addr.all, 5, 0, 65535 - scada_setting.max_discrete);  //discrete_addr
         break;
       case 1:
-        SetParaUint(138, MENU_LINE2_YPOS, &scada_setting.inputreg_addr.all, 5, 0, 65535 - scada_setting.max_inputreg);  //inputreg_addr
+        SetParaUint(MENU_COL2_XPOS, MENU_LINE2_YPOS, &scada_setting.inputreg_addr.all, 5, 0, 65535 - scada_setting.max_inputreg);  //inputreg_addr
         break;
       case 2:
-        SetParaUint(138, MENU_LINE3_YPOS, &scada_setting.holdreg_addr.all, 5, 0, 65535 - scada_setting.max_holdreg);  //holdreg_addr
+        SetParaUint(MENU_COL2_XPOS, MENU_LINE3_YPOS, &scada_setting.holdreg_addr.all, 5, 0, 65535 - scada_setting.max_holdreg);  //holdreg_addr
         break;
     }
   }
@@ -1473,7 +1511,7 @@ void showSavedRecords() {
     //scrollbar & title
     u8g2_draw_scrollbar();
     u8g2.setFont(u8g2_font_t0_12_mf);
-    u8g2.drawStr(0, 10, "Duty Record 2 [Recent->Old]:");
+    u8g2.drawStr(MENU_COL1_XPOS, 10, "Duty Record 2 [Recent->Old]:");
     //Duty record 2 = NO_OF_SAVED_RECORD bytes
     for (int j = 1; j < 5; j++) {
       for (int i = 0; i < 12; i++) {
@@ -1516,7 +1554,7 @@ void unlockSetting() {
   {
     u8g2.clearBuffer();                // clear lcd ram buffer
     u8g2.setFont(u8g2_font_t0_12_mf);  // set font
-    u8g2.drawStr(0, MENU_LINE2_YPOS, "Enter password:");
+    u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE2_YPOS, "Enter password:");
     u8g2.drawStr(100, MENU_LINE2_YPOS, pwd_user);
     LcdUpdate();
     if (Key) {
@@ -1577,25 +1615,16 @@ void unlockSetting() {
 void factoryFunc1() {
   switch (selectedItem) {
     case 0:
-      if (status.motor.unlock_factory_times_left > 0) {
-        unlockSetting();
-      } else {
-        u8g2.clearBuffer();                // clear lcd ram buffer
-        u8g2.setFont(u8g2_font_t0_14_mf);  // set font
-        u8g2.drawStr((MAX_LCD_WIDTH - strlen("Function Locked!") * 7) / 2, 32, "Function Locked!");
-        LcdUpdate();
-        delay(2000);
-        funcResponse = MENU_FUNC_EXIT_NO_SAVE;
-      }
+      unlockSetting();
       break;
     case 1:
-      SetParaUint(138, MENU_LINE2_YPOS, &status.motor.max_psi_sensor.all, 3, 0, MAXIMUM_TANK_PRESSURE);  //maximum psi in psi
+      SetParaUint(MENU_COL2_XPOS, MENU_LINE2_YPOS, &status.motor.max_psi_sensor.all, 3, 0, MAXIMUM_TANK_PRESSURE);  //maximum psi in psi
       break;
     case 2:
-      SetParaUint(138, MENU_LINE3_YPOS, &status.motor.zero_psi_sensor_volt.all, 5, 500, 9000);  //zero psi volt in mV
+      SetParaUint(MENU_COL2_XPOS, MENU_LINE3_YPOS, &status.motor.zero_psi_sensor_volt.all, 5, 500, 9000);  //zero psi volt in mV
       break;
     case 3:
-      SetParaUint(138, MENU_LINE4_YPOS, &status.motor.max_psi_sensor_volt.all, 5, 1000, 10000);  //max psi volt in mV
+      SetParaUint(MENU_COL2_XPOS, MENU_LINE4_YPOS, &status.motor.max_psi_sensor_volt.all, 5, 1000, 10000);  //max psi volt in mV
       break;
   }
 }
@@ -1729,18 +1758,151 @@ char page7Func1(char input) {
   return PAGE7_FUNC1;
 }
 
+void updateOCLimitByBoardMotor() {
+  if (ctrl.motor_model.byte[1] == 0) {         // Board Series = A
+    MINIMUM_OCP_DCAMP = 25;                    // 2.5A
+    MAXIMUM_OCP_DCAMP = 250;                   // 25.0A
+  } else if (ctrl.motor_model.byte[1] == 1) {  // Board Series = D
+    MINIMUM_OCP_DCAMP = 10;                    // 1.0A
+    MAXIMUM_OCP_DCAMP = 100;                   // 10.0A
+  }
+  // set limit
+  if (ctrl.ocp_dcamp.all > MAXIMUM_OCP_DCAMP) {
+    ctrl.ocp_dcamp.all = MAXIMUM_OCP_DCAMP;
+    ctrl.ocp_dcamp_f = (double)ctrl.ocp_dcamp.all / 10.0;
+  } else if (ctrl.ocp_dcamp.all < MINIMUM_OCP_DCAMP) {
+    ctrl.ocp_dcamp.all = MINIMUM_OCP_DCAMP;
+    ctrl.ocp_dcamp_f = (double)ctrl.ocp_dcamp.all / 10.0;
+  }
+}
+
 //-------------------------------------------------------------------
 // page8Func1 f8
 //-------------------------------------------------------------------
 char page8Func1(char input) {
-  setUserFunc4();
+  static u8 board_series;
+  static u8 motor_model;
 
-  if ((funcResponse > MENU_FUNC_IDLE) && (funcResponse != MENU_FUNC_CONFIRM)) {
-    if (funcResponse == MENU_FUNC_EXIT_SAVE) updateEEPROM = true;
-    funcResponse = MENU_FUNC_IDLE;
-    return MENU_PAGE8;
+  switch (selectedItem) {
+    case 0:
+      SetParaBoolstr(MENU_COL2_XPOS, MENU_LINE1_YPOS, &ctrl.communication_fail_action, comfailaction_arr);
+      break;
+    case 1:
+      if ((funcResponse != MENU_FUNC_CONFIRM) && (funcResponse != MENU_FUNC_WAIT_CONTROLLER)) {
+        board_series = ctrl.motor_model.byte[1];
+        SetParaU8str(MENU_COL2_XPOS, MENU_LINE2_YPOS, &board_series, 0, 1, brdSeries_arr);
+      }
+      break;
+    case 2:
+      if ((funcResponse != MENU_FUNC_CONFIRM) && (funcResponse != MENU_FUNC_WAIT_CONTROLLER)) {
+        motor_model = ctrl.motor_model.byte[0];
+        SetParaU8str(MENU_COL2_XPOS, MENU_LINE3_YPOS, &motor_model, 0, 4, mtrModel_arr);
+      }
+      break;
   }
 
+  if (funcResponse > MENU_FUNC_IDLE) {
+    if (funcResponse == MENU_FUNC_EXIT_SAVE) {
+      if (selectedItem == 1) {
+        u8g2.clearBuffer();                // clear lcd ram buffer
+        u8g2.setFont(u8g2_font_t0_12_mf);  // set font
+        u8g2.setDrawColor(TEXT_COLOR_INVERTED);
+        u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE1_YPOS - 6, "WARNING: CHANGE BOARD SERIES");
+        u8g2.setDrawColor(TEXT_COLOR_NORMAL);
+        u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE2_YPOS - 6, "Warning: controller damage may occur if");
+        u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE3_YPOS - 6, "the board and its settings are mismatched.");
+        u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE4_YPOS - 6, "Contact Trido Support for assistance.");
+        LcdUpdate();                       // Send to display & use size 12 font
+        funcResponse = MENU_FUNC_CONFIRM;  //wait for user confirm
+      } else if (selectedItem == 2) {
+        u8g2.clearBuffer();                // clear lcd ram buffer
+        u8g2.setFont(u8g2_font_t0_12_mf);  // set font
+        u8g2.setDrawColor(TEXT_COLOR_INVERTED);
+        u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE1_YPOS - 6, "WARNING: CHANGE MOTOR MODEL");
+        u8g2.setDrawColor(TEXT_COLOR_NORMAL);
+        u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE2_YPOS - 6, "Warning: controller damage may occur if");
+        u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE3_YPOS - 6, "the connected motor is mismatched!");
+        u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE4_YPOS - 6, "Contact Trido Support for assistance.");
+        LcdUpdate();                       // Send to display & use size 12 font
+        funcResponse = MENU_FUNC_CONFIRM;  //wait for user confirm
+      }
+      else
+      {
+        updateEEPROM = true;
+        funcResponse = MENU_FUNC_IDLE;
+        return MENU_PAGE8;
+      }
+    } else if (funcResponse == MENU_FUNC_EXIT_NO_SAVE) {
+      funcResponse = MENU_FUNC_IDLE;
+      return MENU_PAGE8;
+    } else if (funcResponse == MENU_FUNC_CONFIRM) {
+      if (selectedItem == 1) {
+        if (Key == KEY_ENTER) {
+          ctrl.motor_model.byte[1] = board_series;
+          ctrl.reset = true;  // request a reset of controller
+          updateEEPROM = true;
+          lockKeysExceptEscOff();
+          funcResponse = MENU_FUNC_WAIT_CONTROLLER;
+        } else if (Key == KEY_ESC) {
+          funcResponse = MENU_FUNC_IDLE;
+          return MENU_PAGE8;
+        }
+      } else if (selectedItem == 2) {
+        if (Key == KEY_ENTER) {
+          ctrl.motor_model.byte[0] = motor_model;
+          ctrl.reset = true;  // request a reset of controller
+          updateEEPROM = true;
+          lockKeysExceptEscOff();
+          funcResponse = MENU_FUNC_WAIT_CONTROLLER;
+        } else if (Key == KEY_ESC) {
+          funcResponse = MENU_FUNC_IDLE;
+          return MENU_PAGE8;
+        }
+      }
+    } else if (funcResponse == MENU_FUNC_WAIT_CONTROLLER) {
+      if (selectedItem == 1) {
+        //wait for controller reset
+        if (ctrl.reset_ok == true) {
+          updateOCLimitByBoardMotor();
+          updateEEPROM = true;
+          ctrl.reset_ok = false;
+          ctrl.reset = false;         
+          lockKeys(0);
+          funcResponse = MENU_FUNC_IDLE;
+          return MENU_PAGE8;
+        } else {
+          u8g2.clearBuffer();                // clear lcd ram buffer
+          u8g2.setFont(u8g2_font_t0_12_mf);  // set font
+          u8g2.setDrawColor(TEXT_COLOR_INVERTED);
+          u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE1_YPOS - 6, "SETTING: WAITING FOR CONTROLLER RESPONSE");
+          u8g2.setDrawColor(TEXT_COLOR_NORMAL);
+          u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE2_YPOS - 6, "Setting: Waiting for controller to apply");
+          u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE3_YPOS - 6, "new settings. If there is no response for");
+          u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE4_YPOS - 6, "a few seconds, try power cycling the unit.");
+          LcdUpdate();  // Send to display & use size 12 font
+        }
+      } else if (selectedItem == 2) {
+        //wait for controller reset
+        if (ctrl.reset_ok == true) {
+          ctrl.reset_ok = false;
+          ctrl.reset = false;
+          lockKeys(0);
+          funcResponse = MENU_FUNC_IDLE;
+          return MENU_PAGE8;
+        } else {
+          u8g2.clearBuffer();                // clear lcd ram buffer
+          u8g2.setFont(u8g2_font_t0_12_mf);  // set font
+          u8g2.setDrawColor(TEXT_COLOR_INVERTED);
+          u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE1_YPOS - 6, "SETTING: WAITING FOR CONTROLLER RESPONSE");
+          u8g2.setDrawColor(TEXT_COLOR_NORMAL);
+          u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE2_YPOS - 6, "Setting: Waiting for controller to apply");
+          u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE3_YPOS - 6, "new settings. If there is no response for");
+          u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE4_YPOS - 6, "a few seconds, try power cycling the unit.");
+          LcdUpdate();  // Send to display & use size 12 font
+        }
+      }
+    }
+  }
   return PAGE8_FUNC1;
 }
 
@@ -1852,8 +2014,8 @@ u16 getChecksum(unsigned int *buf, u16 bytecount) {
 void prepareWrbuf(unsigned int *buf, u16 *bytecount) {
   u16 index = 0;
   UINT16_T crcval;
-
-  // VFD = 8 bytes
+  
+  // VFD = 10 bytes
   buf[index++] = eep.ctrl.rpm.byte[0];
   buf[index++] = eep.ctrl.rpm.byte[1];
   buf[index++] = eep.ctrl.onoff;
@@ -1862,6 +2024,8 @@ void prepareWrbuf(unsigned int *buf, u16 *bytecount) {
   buf[index++] = eep.totalturns.byte[1];
   buf[index++] = eep.totalturns.byte[2];
   buf[index++] = eep.totalturns.byte[3];
+  buf[index++] = eep.ctrl.motor_model.byte[0];
+  buf[index++] = eep.ctrl.motor_model.byte[1];
 
   // SCADA settings = 12 bytes
   buf[index++] = eep.scada_setting.protocol;
@@ -1964,8 +2128,8 @@ void readEEPROMdata(unsigned int *buf, u16 *byteread) {
   u16 index = 0;
   u16 addr = 0;
 
-  // VFD = 8 bytes
-  for (int i = 0; i < 8; i++) {
+  // VFD = 10 bytes
+  for (int i = 0; i < 10; i++) {
     buf[index++] = EEPROM.read(addr++);
   }
 
@@ -2025,7 +2189,7 @@ void writeEEPROMdata() {
   // if battery voltage is too low probably the pump is powering off, stop recording to avoid data loss, at less than 18V the DC/DC supplying the circuit will not function
   if (status.dcv_f < 20.0) {
     //some errors, we should not be here
-    strcpy(userMsg[0], "Save setting failed.");
+    strcpy(userMsg[0], "SAVE SETTINGS FAILED.");
     strcpy(userMsg[1], "Reason: power failure!");
     strcpy(userMsg[2], "Input is less than 20V.");
     return;
@@ -2033,7 +2197,7 @@ void writeEEPROMdata() {
 
   // Prevent too frequent flash write operation
   if (millis() - eepCounter < 100) {
-    strcpy(userMsg[1], "SAVE CONFIG TOO FAST!");
+    strcpy(userMsg[1], "SAVE: TOO FREQUENT!");
     Serial.println("writeEEPROM:too frequent, last action is not saved!");  //Monitor via serial port
     eepCounter = millis();
     return;
@@ -2054,7 +2218,9 @@ void writeEEPROMdata() {
 
   //DEBUG
   if (br != bw) {
+#if DEBUG_WRITEFLASH_FUNCTION
     Serial.println("writeEEPROM: write buf index not equal to read buf index!");  //Monitor via serial port
+#endif    
     return;
   }
 
@@ -2151,7 +2317,7 @@ bool restoreEEPROMdata() {
   Serial.printf("restoreEEPROM crc (calculated):%u %u\n", crcval.byte[0], crcval.byte[1]);  //Monitor via serial port
 #endif
 
-  // VFD = 8 bytes
+  // VFD = 10 bytes
   eep.ctrl.rpm.byte[0] = rbuf[index++];
   eep.ctrl.rpm.byte[1] = rbuf[index++];
   eep.ctrl.onoff = rbuf[index++];
@@ -2160,6 +2326,8 @@ bool restoreEEPROMdata() {
   eep.totalturns.byte[1] = rbuf[index++];
   eep.totalturns.byte[2] = rbuf[index++];
   eep.totalturns.byte[3] = rbuf[index++];
+  eep.ctrl.motor_model.byte[0] = rbuf[index++];
+  eep.ctrl.motor_model.byte[1] = rbuf[index++];
 
   // SCADA settings = 12 bytes
   eep.scada_setting.protocol = rbuf[index++];
@@ -2264,7 +2432,7 @@ bool restoreEEPROMdata() {
       eep.history[i].err.all = 0;
       eep.history[i].status.all = 0;
     }
-	status.dcv_f = 36.0; // to skip voltage checking for writeEEPROMdata()
+    status.dcv_f = 36.0;  // to skip voltage checking for writeEEPROMdata()
     writeEEPROMdata();
     return ret;
   } else {
@@ -2368,6 +2536,7 @@ void kpEvent(KeypadEvent Key) {
           ctrl.mode++;
         else
           ctrl.mode = 0;
+        strcpy(userMsg[1], mode_arr[ctrl.mode]);
         updateEEPROM = true;
         if ((ctrl.mode == LOCAL_MODE) || (ctrl.mode == REMOTE_MODE))
           mbServer.start();  // Start ModbusRTU background task
@@ -2408,6 +2577,18 @@ void lockKeys(byte lock) {
   kp.lockKey(2, 1, lock);  // lock RIGHT
   //kp.lockKey(2, 2, 1); // lock OFF
   //if (Key) Serial.println(Key);  //DEBUG
+}
+
+void lockKeysExceptEscOff() {
+  //kp.lockKey(0, 0, 1);  // lock ESC
+  kp.lockKey(0, 1, 1);  // lock LEFT
+  kp.lockKey(0, 2, 1);  // lock ON
+  kp.lockKey(1, 0, 1);  // lock UP
+  kp.lockKey(1, 1, 1);  // lock DOWN
+  kp.lockKey(1, 2, 1);  // lock ENTER
+  kp.lockKey(2, 0, 1);  // lock L/R
+  kp.lockKey(2, 1, 1);  // lock RIGHT
+  //kp.lockKey(2, 2, 1);     // lock OFF
 }
 
 //-------------------------------
@@ -2541,7 +2722,7 @@ void taskScreenSaver(void *parameter) {
       screenSaverCount++;
     }
 
-    vTaskDelay(1000 / portTICK_PERIOD_MS);  //1000ms
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
   }
 }
 
@@ -2577,7 +2758,7 @@ void debugMbResponse(Error err) {
 // taskMbClient
 //--------------------------------
 void taskMbClient(void *parameter) {
-  const u8 WDAT_SIZE = 16;
+  const u8 WDAT_SIZE = 18;
   u16 wdat[WDAT_SIZE];
   u16 index;
 
@@ -2587,10 +2768,11 @@ void taskMbClient(void *parameter) {
     Error err = SUCCESS;
     switch (mbTokenCounter) {
       case FC03_SOMI:
-        //reg 16 - 24
-        err = mbClient.addRequest(FC03_SOMI /*token*/, 1 /*server_id*/, READ_HOLD_REGISTER /*FC*/, 16 /*reg*/, 9 /*count*/);
+        //reg 18 - 27
+        err = mbClient.addRequest(FC03_SOMI /*token*/, 1 /*server_id*/, READ_HOLD_REGISTER /*FC*/, 18 /*reg*/, 10 /*count*/);
+#ifdef DEBUG_PRINT_RESPONSE        
         debugMbRequest(err);
-        // if(err == SUCCESS) Serial.println("FC03_SOMI Successful");
+#endif        
         break;
       case FC16_MOSI:
         //reg 0 heartbeat out ->
@@ -2627,13 +2809,19 @@ void taskMbClient(void *parameter) {
         wdat[index++] = status.motor.max_psi_sensor_volt.all;
         //reg 15 Communication fail action ->
         wdat[index++] = ctrl.communication_fail_action;
+        //reg 16 Motor Model Number
+        wdat[index++] = ctrl.motor_model.all;
+        //reg 17 Controller reset
+        wdat[index++] = ctrl.reset;
         err = mbClient.addRequest(FC16_MOSI /*token*/, 1 /*server_id*/, WRITE_MULT_REGISTERS /*FC*/, 0 /*reg*/, index /*words*/, index * 2 /*bytes*/, wdat);
         //####################################
         //REMEMBER to change the wdat[size]!
         //####################################
         break;
     }
+#if DEBUG_MODBUS_ERROR
     if (index > WDAT_SIZE) Serial.println("taskMbClient():index > WDAT_SIZE");
+#endif    
     if (err == SUCCESS) {
       mbTokenCounter++;
     }
@@ -2658,7 +2846,7 @@ void handleData(ModbusMessage msg, u32 token) {
   (void)token;
 #endif
 
-  const u8 RDAT_SIZE = 9;
+  const u8 RDAT_SIZE = 10;
   u16 words = 0;
   u16 rdata[RDAT_SIZE];
   u16 index = 0;
@@ -2677,26 +2865,26 @@ void handleData(ModbusMessage msg, u32 token) {
 #if DEBUG_MODBUS_ERROR
       Serial.print("\n");
 #endif
-      //reg 16 rpm in        <-
+      //reg 18 rpm in        <-
       temp.rpm_in.all = rdata[index++];
       temp.rpm_in.all = twos2Int(temp.rpm_in.byte[1], temp.rpm_in.byte[0]);
-      status.rpm.all = temp.rpm_in.all;  //int rpm
+      status.rpm.all = temp.rpm_in.all;   //int rpm
       rpm_filt = (double)status.rpm.all;  //double val for totalturn counting
 
-      //reg 17 DC bus voltage in       <-
+      //reg 19 DC bus voltage in       <-
       status.dcv.all = rdata[index++];
       status.dcv.all = twos2Int(status.dcv.byte[1], status.dcv.byte[0]);
       status.dcv_f = (double)status.dcv.all / 10.0f;
 
-      //reg 18 DC bus current in      <-
+      //reg 20 DC bus current in      <-
       status.dca.all = rdata[index++];
       status.dca.all = twos2Int(status.dca.byte[1], status.dca.byte[0]);
       status.dca_f = (double)status.dca.all / 10.0f;
 
-      //reg 19 on/off state in      <-
+      //reg 21 on/off state in      <-
       status.onoff = rdata[index++];
 
-      //reg 20 error
+      //reg 22 error
       sysstat.bit.low_voltage_warning = bitRead(rdata[index], 0);
       sysstat.bit.over_current_warning = bitRead(rdata[index], 1);
       syserr.bit.over_current_err = bitRead(rdata[index], 2);
@@ -2708,15 +2896,15 @@ void handleData(ModbusMessage msg, u32 token) {
       syserr.bit.vfd_est_err = bitRead(rdata[index], 8);  //FOC estimator error
       index++;
 
-      //reg 21 Motor coil current in      <-
+      //reg 23 Motor coil current in      <-
       status.motora.all = rdata[index++];
       status.motora.all = twos2Int(status.motora.byte[1], status.motora.byte[0]);
       status.motora_f = (double)status.motora.all / 10.0f;
 
-      //reg 22 heartbeat
+      //reg 24 heartbeat
       status.count = rdata[index++];
 
-      //reg 23 DIO state
+      //reg 25 DIO state
       io.all = rdata[index++];
       //DIO control on/off in <-
       if (io.bit.DI1) {
@@ -2729,14 +2917,19 @@ void handleData(ModbusMessage msg, u32 token) {
         }
       }
 
-      //reg 24 Tank Pressure in <-
+      //reg 26 Tank Pressure in <-
       status.motor.tank_pressure.all = rdata[index++];  //Tank pressure in     <-
+
+      //reg 27
+      ctrl.reset_ok = rdata[index++];
       //####################################
       //REMEMBER to change the rdat[size]!
       //####################################
 
+#if DEBUG_MODBUS_ERROR
       if (index > RDAT_SIZE) Serial.println("handleData():index > RDAT_SIZE");
-      // reset communication counter
+#endif      
+      // reset communication counter      
       vfdHeartbeatCounter = vfdErrCounter;
       syserr.bit.vfd_heartbeat_err = false;
     }
@@ -3525,13 +3718,19 @@ void setup() {
   while (!Serial) {};          //Wait for Serial 0
   // Serial2
   Serial2.begin(SERIAL2_BAUD, SERIAL_8N1, MODBUS_CH1_TX_PIN, MODBUS_CH1_RX_PIN); //Serial 2, IO17=TX2, IO16=RX2
+  
   while (!Serial2) {};          //Wait for Serial 2
   // LCD
   u8g2.begin();
+  u8g2.clearBuffer();                // clear lcd ram buffer
+  u8g2.setFont(u8g2_font_t0_12_mf);  // set font
+  u8g2.setDrawColor(TEXT_COLOR_NORMAL);
   // External RTC
   if (rtc.begin()) {
     //RTC error
+#if DEBUG_FUNCTION
     Serial.println("rtc.begin(): Error!");
+#endif    
     dnt = { 2000, 1, 1, 0, 0, 0 };  //yymmdd,hhmmss
   } else {
     //RTC ok
@@ -3552,13 +3751,15 @@ void setup() {
   kp.setDebounceTime(80);        // Set debounce time for noise immunity, i.e. the minimum depress period to be treated as PRESSED
   // EEPROM
   EEPROM.begin(EEPROM_SIZE);
-  delay(10);
+  delay(100);
   //<! Initialize unknown variables
   ctrl.rpm.all = MAXIMUM_RPM;
   ctrl.min_dcv_input.all = MINIMUM_DCV_INPUT;
   ctrl.max_dcv_input.all = MAXIMUM_DCV_INPUT;
   ctrl.slow_down_dcv.all = SLOW_DOWN_DCV;
   ctrl.ocp_dcamp.all = MAXIMUM_OCP_DCAMP;
+  ctrl.motor_model.byte[0] = 2;  // Motor Model = 50MM
+  ctrl.motor_model.byte[1] = 1;  // Controller Series = D
   status.rpm.all = 0;
   status.dcv.all = 0;
   status.dca.all = 0;
@@ -3614,17 +3815,17 @@ void setup() {
       u8g2.clearBuffer();                // clear lcd ram buffer
       u8g2.setFont(u8g2_font_t0_12_mf);  // set font
       u8g2.setDrawColor(TEXT_COLOR_INVERTED);
-      u8g2.drawStr(0, MENU_LINE1_YPOS - 6, "ERROR: MEMORY FAIL");
+      u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE1_YPOS - 6, "ERROR: MEMORY FAIL");
       u8g2.setDrawColor(TEXT_COLOR_NORMAL);
-      u8g2.drawStr(0, MENU_LINE2_YPOS - 6, "Error: Memory failed with retry.");
-      u8g2.drawStr(0, MENU_LINE3_YPOS - 6, "The user setting data read back");
-      u8g2.drawStr(0, MENU_LINE4_YPOS - 6, "were not valid.");
+      u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE2_YPOS - 6, "Error: Memory failed with retry.");
+      u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE3_YPOS - 6, "The user setting data read back");
+      u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE4_YPOS - 6, "were not valid.");
       LcdUpdate();  // Send to display & use size 12 font
       while (1)
         ;
     }
   } else {
-    strcpy(userMsg[1], "READ CONFIG SUCCESS.");
+    strcpy(userMsg[1], "Configuration read successfully.");
   }
   COMport1Config();
   // MENU
@@ -3689,7 +3890,8 @@ void setup() {
   mbClient.onErrorHandler(&handleError);  //Response Error callback function
   mbClient.setTimeout(100);               //Set time out
   mbClient.begin(0);                      // Start ModbusClientRTU background task on core 0
-    /*
+  ctrl.reset = true;                      // request a reset of controller
+                                          /*
     setCpuFrequencyMhz(10);
     int Freq = getCpuFrequencyMhz();
     Serial.print("CPU Freq = ");
@@ -3705,14 +3907,23 @@ void setup() {
     Serial.println(" Hz");
     Serial.println(ESP.getFreeHeap());*/
   // Watchdog
+  // Enable panic so that the ESP32 restarts
+  // For V5 API
+  /*
+  const esp_task_wdt_config_t wdtConfig = { WDT_TIMEOUT, 0, false };
+  esp_task_wdt_init( &wdtConfig );
+  esp_task_wdt_add( NULL );
   wdtResetCount = millis();
-
+  */
+  // For V3 API
+  wdtResetCount = millis();
   esp_task_wdt_config_t esp_task_wdt = {
     .timeout_ms = WDT_TIMEOUT,
     .idle_core_mask = 0x3,
     .trigger_panic = true
   };
   esp_task_wdt_init(&esp_task_wdt);       //Enable panic so ESP32 restarts
+  // esp_task_wdt_init(WDT_TIMEOUT, true);  //Enable panic so ESP32 restarts
   esp_task_wdt_add(NULL);                //Add current thread to WDT watch
 }
 
@@ -3721,7 +3932,9 @@ void checkTime() {
   if (now.year() == 2000) {
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
     now = rtc.now();  //read adjusted time
+#if DEBUG_FUNCTION    
     Serial.println("RTC:adjusting date and time.");
+#endif
     //check date and time value
     getTime(now, &dnt);
   }
@@ -3746,6 +3959,16 @@ void checkTime() {
 // loop()
 //=========================================================================================================================================================================
 void loop() {
+  // controller startup reset
+  if (startUpReset == true) {
+    if (ctrl.reset == true) {
+      if (ctrl.reset_ok == true) {
+        ctrl.reset_ok = false;
+        ctrl.reset = false;
+        startUpReset = false;
+      }
+    }
+  }
   // Feed Watchdog every 1s, when program stucks, ESP32 auto-restart
   if (millis() - wdtResetCount >= 1000) {
     if (syserr.bit.vfd_heartbeat_err == true) {
@@ -3756,7 +3979,7 @@ void loop() {
     // reset ESP32 if communication from controller has been lost for 30 seconds
     if (espResetCounter > 30) {
       espResetCounter = 0;
-      // delay(10000);         // This causes ESP32 reset by watchdog timeout
+      delay(10000);  // This causes ESP32 reset by watchdog timeout
     } else {
       esp_task_wdt_reset();  //feed watchdog
     }
@@ -3799,6 +4022,52 @@ void loop() {
       if (ctrl.onoff == ON)  //if the system is on regardless of motor on/off state, time on++
       {
         status.motor.cycletime_sec++;  //motor on+off sec++
+      }
+
+      // Check if we had a low voltage condition, and restore the correct state
+      if( sysstat.bit.low_voltage_warning )
+      {
+        if( nPreviousMotorState == MOTOR_STATE_UNDEFINED )
+        {
+          if((status.onoff == ON) && (status.rpm.all > 0))
+          {
+            nPreviousMotorState = MOTOR_STATE_RUN;
+          }
+          else if((status.onoff == ON) && (status.rpm.all == 0))
+          {
+            nPreviousMotorState = MOTOR_STATE_HOLD;
+          }
+          else
+            nPreviousMotorState = MOTOR_STATE_OFF;
+        }
+      }
+      else
+      {
+        // Restore previous state
+        if( nPreviousMotorState == MOTOR_STATE_OFF )
+        {
+          if(( ctrl.mode == LOCAL_MODE ) || ( ctrl.mode == REMOTE_MODE))
+          {
+            ctrl.onoff = OFF;
+          }
+        }
+        else if( nPreviousMotorState == MOTOR_STATE_RUN )
+        {
+          if(( ctrl.mode == LOCAL_MODE ) || ( ctrl.mode == REMOTE_MODE))
+          {
+            ctrl.onoff = ON;
+          }
+        }
+        else if( nPreviousMotorState == MOTOR_STATE_HOLD )
+        {
+          if(( ctrl.mode == LOCAL_MODE ) || ( ctrl.mode == REMOTE_MODE))
+          {
+            ctrl.onoff = OFF;
+          }
+        }
+
+        // Reset stored state
+        nPreviousMotorState = MOTOR_STATE_UNDEFINED;
       }
 
       // if we use 100*seconds/totalsecs to calculate %, it would overflow in a few days
@@ -3894,7 +4163,7 @@ void loop() {
         currentIndexRam = status.motor.ram_record_index;
         status.motor.ram_record_index++;
 
-        //reset runtime
+        // //reset runtime
         // status.motor.runtime_sec = 0;
         // status.motor.runtime_min = 0;
         // status.motor.runtime_hour = 0;
@@ -4030,8 +4299,8 @@ void loop() {
 // LcdUpdate() LcdUpdate() LcdUpdate() LcdUpdate() LcdUpdate() LcdUpdate() LcdUpdate() LcdUpdate() LcdUpdate() LcdUpdate() LcdUpdate() LcdUpdate() LcdUpdate() LcdUpdate()
 //=========================================================================================================================================================================
 void LcdUpdate() {
-  u8g2.sendBuffer();  // send to LCD
   u8g2.setFont(u8g2_font_t0_12_mf);
+  u8g2.sendBuffer();  // send to LCD
 }
 
 void dispError() {
@@ -4042,11 +4311,11 @@ void dispError() {
       switch (errorDisplayCount) {
         case 0:
           if (!syserr.bit.vfd_heartbeat_err)
-            strcpy(errorMsg, "OVPERR");  //DC input over-voltage error
+            strcpy(errorMsg, "DCLERR");  //DC input over-voltage error
           break;
         case 1:
           if (!syserr.bit.vfd_heartbeat_err)
-            strcpy(errorMsg, "UVPERR");  //DC input under-voltage error
+            strcpy(errorMsg, "DCHERR");  //DC input under-voltage error
           break;
         case 2:
           if (!syserr.bit.vfd_heartbeat_err)
@@ -4129,7 +4398,7 @@ void MenuBufferPage1() {
   u8g2_draw_arrow_at_array(menuItemPos2, menuTotalItem /*totalItem*/);
   u8g2.setFont(u8g2_font_t0_11_mf);  // set font
   //set rpm
-  u8g2.drawStr(0, MENU_TITLE_YPOS, "Set RPM");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_TITLE_YPOS, "Set RPM");
   int intvar = twos2Int(ctrl.rpm.byte[1], ctrl.rpm.byte[0]);
   xconvert(gStr1, "%03d", intvar);
   u8g2.drawStr(65, MENU_TITLE_YPOS, gStr1);
@@ -4166,7 +4435,7 @@ void MenuBufferPage1() {
   u8g2.setFont(u8g2_font_t0_11_mf);  // set font
   //end of draw motor direction icon
   //status
-  u8g2.drawStr(0, MENU_LINE1_YPOS, "Status");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE1_YPOS, "Status");
   if (syserr.bit.vfd_heartbeat_err) {
     if (ctrl.onoff == ON) {
       u8g2.drawStr(65, MENU_LINE1_YPOS, "SysOn");
@@ -4202,13 +4471,13 @@ void MenuBufferPage1() {
   u8g2.drawStr(210, MENU_LINE1_YPOS, gStr1);
   if (syserr.bit.vfd_heartbeat_err) u8g2.drawStr(210, MENU_LINE1_YPOS, "--.-A");
   //tank pressure
-  u8g2.drawStr(0, MENU_LINE2_YPOS, "Pressure");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE2_YPOS, "Pressure");
   tmpval.all = status.motor.tank_pressure.all;
   tmpval.all = twos2Int(tmpval.byte[1], tmpval.byte[0]);
   xconvert(gStr1, "%03dpsi ", tmpval.all);
   u8g2.drawStr(65, MENU_LINE2_YPOS, gStr1);
   //run time
-  u8g2.drawStr(0, MENU_LINE3_YPOS, "Run Time");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE3_YPOS, "Run Time");
   if (status.motor.runtime_day) xconvert(gStr1, "%03dd-%02dh", status.motor.runtime_day, status.motor.runtime_hour);
   else if (status.motor.runtime_hour) xconvert(gStr1, "%02dh-%02dm", status.motor.runtime_hour, status.motor.runtime_min);
   else xconvert(gStr1, "%02dm-%02ds", status.motor.runtime_min, status.motor.runtime_sec);
@@ -4223,12 +4492,12 @@ void MenuBufferPage1() {
   u8g2.drawStr(210, MENU_LINE3_YPOS, gStr1);
   //date and time
   if (selectedItem != 4) {
-    u8g2.drawStr(0, MENU_LINE4_YPOS, "Time On");
+    u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE4_YPOS, "Time On");
     if (status.motor.cycletime_day) xconvert(gStr1, "%03dd-%02dh", status.motor.cycletime_day, status.motor.cycletime_hour);
     else if (status.motor.runtime_hour) xconvert(gStr1, "%02dh-%02dm", status.motor.cycletime_hour, status.motor.cycletime_min);
     else xconvert(gStr1, "%02dm-%02ds", status.motor.cycletime_min, status.motor.cycletime_sec);
   } else {
-    u8g2.drawStr(0, MENU_LINE4_YPOS, "Set Time");
+    u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE4_YPOS, "Set Time");
     if (status.motor.set_cycletime.all < 240)
       xconvert(gStr1, "%04.1fhour", (double)status.motor.set_cycletime.all / 10.0f);
     else
@@ -4255,7 +4524,7 @@ void MenuBufferPage2() {
   u8g2_draw_arrow_at_array(menuItemPos1, menuTotalItem /*totalItem*/);
   u8g2.setFont(u8g2_font_t0_11_mf);  // set font
   //set rpm
-  u8g2.drawStr(0, MENU_TITLE_YPOS, "Set RPM");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_TITLE_YPOS, "Set RPM");
   int intvar = twos2Int(ctrl.rpm.byte[1], ctrl.rpm.byte[0]);
   xconvert(gStr1, "%03d", intvar);
   u8g2.drawStr(75, MENU_TITLE_YPOS, gStr1);
@@ -4292,7 +4561,7 @@ void MenuBufferPage2() {
   u8g2.setFont(u8g2_font_t0_11_mf);  // set font
   //end of draw motor direction icon
   //status
-  u8g2.drawStr(0, MENU_LINE1_YPOS, "Status");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE1_YPOS, "Status");
   if (syserr.bit.vfd_heartbeat_err) {
     if (ctrl.onoff == ON) {
       u8g2.drawStr(75, MENU_LINE1_YPOS, "SysOn");
@@ -4321,11 +4590,9 @@ void MenuBufferPage2() {
   }
   //control mode
   u8g2.drawStr(120, MENU_LINE1_YPOS, "Control");
-  if (ctrl.mode == LOCAL_MODE) u8g2.drawStr(210, MENU_LINE1_YPOS, "Local");
-  else if (ctrl.mode == REMOTE_MODE) u8g2.drawStr(210, MENU_LINE1_YPOS, "Remote");
-  else if (ctrl.mode == DIO_MODE) u8g2.drawStr(210, MENU_LINE1_YPOS, "DIO");
+  u8g2.drawStr(210, MENU_LINE1_YPOS, mode_arr[ctrl.mode]);
   //dc voltage
-  u8g2.drawStr(0, MENU_LINE2_YPOS, "DC Voltage");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE2_YPOS, "DC Voltage");
   xconvert(gStr1, "%04.1fV ", status.dcv_f);
   u8g2.drawStr(75, MENU_LINE2_YPOS, gStr1);
   if (syserr.bit.vfd_heartbeat_err) u8g2.drawStr(75, MENU_LINE2_YPOS, "--.-V");
@@ -4341,12 +4608,12 @@ void MenuBufferPage2() {
   xconvert(gStr1, "%03dpsi ", tmpval.all);
   u8g2.drawStr(210, MENU_LINE3_YPOS, gStr1);
   //count
-  u8g2.drawStr(0, MENU_LINE3_YPOS, "Count");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE3_YPOS, "Count");
   xconvert(gStr1, "%05d", status.count);
   u8g2.drawStr(75, MENU_LINE3_YPOS, gStr1);
   if (syserr.bit.vfd_heartbeat_err) u8g2.drawStr(75, MENU_LINE3_YPOS, "-----");
   //date and time
-  u8g2.drawStr(0, MENU_LINE4_YPOS, "Date & Time");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE4_YPOS, "Date & Time");
   if (!rtcFail) {
     xconvert(gStr1, "%d/%02d/%02d %02d:%02d:%02d", dnt.year, dnt.month, dnt.day, dnt.hour, dnt.minute, dnt.second);
     u8g2.drawStr(75, MENU_LINE4_YPOS, gStr1);
@@ -4367,7 +4634,7 @@ void MenuBufferPage3() {
   //scrollbar & title
   u8g2_draw_scrollbar();
   u8g2.setFont(u8g2_font_t0_12_mf);
-  u8g2.drawStr(0, MENU_TITLE_YPOS, "Duty Record 1 [Recent->Old]:");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_TITLE_YPOS, "Duty Record 1 [Recent->Old]:");
   if (!toggleDutyRecord) {
     //RAM stored record = NO_OF_RAM_RECORD bytes
     for (int j = 1; j < 5; j++) {
@@ -4380,7 +4647,7 @@ void MenuBufferPage3() {
       }
     }
   } else {
-    u8g2.drawStr(0, 10, "Duty Record 2 [Recent->Old]:");
+    u8g2.drawStr(MENU_COL1_XPOS, 10, "Duty Record 2 [Recent->Old]:");
     //FLASH stored record = NO_OF_SAVED_RECORD bytes
     for (int j = 1; j < 5; j++) {
       for (int i = 0; i < 12; i++) {
@@ -4428,25 +4695,25 @@ void MenuBufferPage5() {
   u8g2.clearBuffer();  // clear lcd ram buffer
   //scrollbar & title
   u8g2_draw_scrollbar();
-  u8g2_draw_arrow(128 - 6, MENU_LINE1_YPOS, 13 /*font_h*/, menuTotalItem /*totalItem*/);
+  u8g2_draw_arrow(MENU_COL2_XPOS - 6, MENU_LINE1_YPOS, 13 /*font_h*/, menuTotalItem /*totalItem*/);
   u8g2.setFont(u8g2_font_t0_12_mf);  // set font
-  u8g2.drawStr(0, MENU_TITLE_YPOS, "[COMPRESSOR SETTINGS]");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_TITLE_YPOS, "[COMPRESSOR SETTINGS]");
   //1.
-  u8g2.drawStr(0, MENU_LINE1_YPOS, "1.MIN INPUT VOLTAGE");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE1_YPOS, "1. Min input voltage");
   xconvert(gStr1, "%04.1fV ", ctrl.min_dcv_input_f);
-  u8g2.drawStr(128, MENU_LINE1_YPOS, gStr1);
+  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE1_YPOS, gStr1);
   //2.
-  u8g2.drawStr(0, MENU_LINE2_YPOS, "2.SLOW DOWN VOLTAGE");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE2_YPOS, "2. Slow-down voltage");
   xconvert(gStr1, "%04.1fV ", ctrl.slow_down_dcv_f);
-  u8g2.drawStr(128, MENU_LINE2_YPOS, gStr1);
+  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE2_YPOS, gStr1);
   //3.
-  u8g2.drawStr(0, MENU_LINE3_YPOS, "3.OCP DC AMPERE");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE3_YPOS, "3. Over-current limit");
   xconvert(gStr1, "%04.1fA ", ctrl.ocp_dcamp_f);
-  u8g2.drawStr(128, MENU_LINE3_YPOS, gStr1);
+  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE3_YPOS, gStr1);
   //4.
-  u8g2.drawStr(0, MENU_LINE4_YPOS, "4.MAX INPUT VOLTAGE");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE4_YPOS, "4. Max input voltage");
   xconvert(gStr1, "%04.1fV ", ctrl.max_dcv_input_f);
-  u8g2.drawStr(128, MENU_LINE4_YPOS, gStr1);
+  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE4_YPOS, gStr1);
   u8g2.drawStr(168, MENU_LINE4_YPOS, "(PRESET)");
 }
 
@@ -4459,30 +4726,30 @@ void MenuBufferPage6() {
   u8g2.clearBuffer();  // clear lcd ram buffer
   //scrollbar & title
   u8g2_draw_scrollbar();
-  u8g2_draw_arrow(138 - 6, MENU_LINE1_YPOS, 13 /*font_h*/, menuTotalItem /*totalItem*/);
+  u8g2_draw_arrow(MENU_COL2_XPOS - 6, MENU_LINE1_YPOS, 13 /*font_h*/, menuTotalItem /*totalItem*/);
   u8g2.setFont(u8g2_font_t0_12_mf);  // set font
-  u8g2.drawStr(0, MENU_TITLE_YPOS, "[COMPRESSOR SETTINGS]");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_TITLE_YPOS, "[COMPRESSOR SETTINGS]");
   //5.
-  u8g2.drawStr(0, MENU_LINE1_YPOS, "5.ZERO PSI OFFSET");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE1_YPOS, "5. Zero PSI offset");
   xconvert(gStr1, "%02d", status.motor.sensor_psi_offset);
-  u8g2.drawStr(138, MENU_LINE1_YPOS, gStr1);
+  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE1_YPOS, gStr1);
   xconvert(gStr1, "[%02d = %d PSI]", status.motor.sensor_psi_offset, status.motor.sensor_psi_offset - 5);
   u8g2.drawStr(168, MENU_LINE1_YPOS, gStr1);  //Hint
   //6.
-  u8g2.drawStr(0, MENU_LINE2_YPOS, "6.SINGLE DUTY ALARM");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE2_YPOS, "6. Single duty alarm");
   xconvert(gStr1, "%03d%%", status.motor.single_duty_alarm_percent);
-  u8g2.drawStr(138, MENU_LINE2_YPOS, gStr1);
+  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE2_YPOS, gStr1);
   //7.
-  u8g2.drawStr(0, MENU_LINE3_YPOS, "7.AVERAGE DUTY ALARM");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE3_YPOS, "7. Average duty alarm");
   xconvert(gStr1, "%03d%%", status.motor.average_duty_alarm_percent);
-  u8g2.drawStr(138, MENU_LINE3_YPOS, gStr1);
+  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE3_YPOS, gStr1);
   //8.
-  u8g2.drawStr(0, MENU_LINE4_YPOS, "8.CYCLETIME PERIOD");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE4_YPOS, "8. Cycle period time");
   if (status.motor.set_cycletime.all < 240)
     xconvert(gStr1, "%04.1fhour", (double)status.motor.set_cycletime.all / 10.0f);
   else
     xconvert(gStr1, "%dday     ", status.motor.set_cycletime.all / 240);
-  u8g2.drawStr(138, MENU_LINE4_YPOS, gStr1);
+  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE4_YPOS, gStr1);
 }
 
 //----------------------------------------------------------------
@@ -4494,35 +4761,35 @@ void MenuBufferPage7() {
   u8g2.clearBuffer();  // clear lcd ram buffer
   //scrollbar & title
   u8g2_draw_scrollbar();
-  u8g2_draw_arrow(138 - 6, MENU_LINE1_YPOS, 13 /*font_h*/, menuTotalItem /*totalItem*/);
+  u8g2_draw_arrow(MENU_COL2_XPOS - 6, MENU_LINE1_YPOS, 13 /*font_h*/, menuTotalItem /*totalItem*/);
   u8g2.setFont(u8g2_font_t0_12_mf);  // set font
-  u8g2.drawStr(0, MENU_TITLE_YPOS, "[COMPRESSOR SETTINGS]");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_TITLE_YPOS, "[COMPRESSOR SETTINGS]");
   //9.
-  u8g2.drawStr(0, MENU_LINE1_YPOS, "9.PRESSURE CONTROL");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE1_YPOS, "9. Pressure Control");
   if (status.motor.pressure_control_method == 0) xconvert(gStr1, "%s", "STOP MOTOR ");
   else if (status.motor.pressure_control_method == 1) xconvert(gStr1, "%s", "DOUT3 OPEN ");
   else if (status.motor.pressure_control_method == 2) xconvert(gStr1, "%s", "DOUT3 CLOSE");
-  u8g2.drawStr(138, MENU_LINE1_YPOS, gStr1);
+  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE1_YPOS, gStr1);
   //10.
-  u8g2.drawStr(0, MENU_LINE2_YPOS, "10.CLEAR DUTY RECORDS");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE2_YPOS, "10. Clear duty records");
   if (toggleClearDuty) {
-    u8g2.drawStr(138, MENU_LINE2_YPOS, "YES");
+    u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE2_YPOS, "YES");
   } else {
-    u8g2.drawStr(138, MENU_LINE2_YPOS, "NO");
+    u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE2_YPOS, "NO");
   }
   //11.
-  u8g2.drawStr(0, MENU_LINE3_YPOS, "11.MOTOR TURNS RESET");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE3_YPOS, "11. Reset motor turns");
   if (status.motor.autoreset_motorturns) {
-    u8g2.drawStr(138, MENU_LINE3_YPOS, "00:00:00");
+    u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE3_YPOS, "00:00:00");
   } else {
-    u8g2.drawStr(138, MENU_LINE3_YPOS, "MANUAL");
+    u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE3_YPOS, "MANUAL");
   }
   //12.
-  u8g2.drawStr(0, MENU_LINE4_YPOS, "12.DISABLE DIO MODE");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE4_YPOS, "12. Disable DIO mode");
   if (status.motor.disable_dio_mode) {
-    u8g2.drawStr(138, MENU_LINE4_YPOS, "DISABLE");
+    u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE4_YPOS, "DISABLE");
   } else {
-    u8g2.drawStr(138, MENU_LINE4_YPOS, "ENABLE");
+    u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE4_YPOS, "ENABLE");
   }
 }
 
@@ -4531,16 +4798,22 @@ void MenuBufferPage7() {
 //----------------------------------------------------------------
 void MenuBufferPage8() {
   menuPage = 8;
-  menuTotalItem = 1;
+  menuTotalItem = 3;
   u8g2.clearBuffer();  // clear lcd ram buffer
   //scrollbar & title
   u8g2_draw_scrollbar();
-  u8g2_draw_arrow(138 - 6, MENU_LINE1_YPOS, 13 /*font_h*/, menuTotalItem /*totalItem*/);
+  u8g2_draw_arrow(MENU_COL2_XPOS - 6, MENU_LINE1_YPOS, 13 /*font_h*/, menuTotalItem /*totalItem*/);
   u8g2.setFont(u8g2_font_t0_12_mf);  // set font
-  u8g2.drawStr(0, MENU_TITLE_YPOS, "[COMPRESSOR SETTINGS]");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_TITLE_YPOS, "[COMPRESSOR SETTINGS]");
   //13.
-  u8g2.drawStr(0, MENU_LINE1_YPOS, "13.COM FAIL ACTION");
-  u8g2.drawStr(138, MENU_LINE1_YPOS, comfailaction_arr[ctrl.communication_fail_action]);
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE1_YPOS, "13. Comm fail action");
+  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE1_YPOS, comfailaction_arr[ctrl.communication_fail_action]);
+  //14.
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE2_YPOS, "14. Controller Series");
+  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE2_YPOS, brdSeries_arr[ctrl.motor_model.byte[1]]);
+  //15.
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE3_YPOS, "15. Motor model");
+  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE3_YPOS, mtrModel_arr[ctrl.motor_model.byte[0]]);
 }
 
 //----------------------------------------------------------------
@@ -4552,29 +4825,29 @@ void MenuBufferPage9() {
   u8g2.clearBuffer();  // clear lcd ram buffer
   //scrollbar & title
   u8g2_draw_scrollbar();
-  u8g2_draw_arrow(128 - 6, MENU_LINE1_YPOS, 13 /*font_h*/, menuTotalItem /*totalItem*/);
+  u8g2_draw_arrow(MENU_COL2_XPOS - 6, MENU_LINE1_YPOS, 13 /*font_h*/, menuTotalItem /*totalItem*/);
   u8g2.setFont(u8g2_font_t0_12_mf);  // set font
-  u8g2.drawStr(0, MENU_TITLE_YPOS, "[SCADA MODBUS SETTINGS]");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_TITLE_YPOS, "[SCADA MODBUS SETTINGS]");
   //protocol
-  u8g2.drawStr(0, MENU_LINE1_YPOS, "1.Protocol");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE1_YPOS, "1. Protocol");
   if (scada_setting.protocol == 0) xconvert(gStr1, "%s", "RTU  ");
   else if (scada_setting.protocol == 1) xconvert(gStr1, "%s", "ASCII");
-  u8g2.drawStr(128, MENU_LINE1_YPOS, gStr1);
+  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE1_YPOS, gStr1);
   u8g2.drawStr(173, MENU_LINE1_YPOS, "[RTU/ASCII]");  //Hint
   //server_id
-  u8g2.drawStr(0, MENU_LINE2_YPOS, "2.Server ID");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE2_YPOS, "2. Server ID");
   xconvert(gStr1, "%03d", scada_setting.server_id);
-  u8g2.drawStr(128, MENU_LINE2_YPOS, gStr1);
+  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE2_YPOS, gStr1);
   u8g2.drawStr(173, MENU_LINE2_YPOS, "[1-247]");  //Hint
   //timeout
-  u8g2.drawStr(0, MENU_LINE3_YPOS, "3.Timeout (ASCII)");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE3_YPOS, "3. Timeout (ASCII)");
   xconvert(gStr1, "%05d", scada_setting.timeout);
-  u8g2.drawStr(128, MENU_LINE3_YPOS, gStr1);
+  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE3_YPOS, gStr1);
   u8g2.drawStr(173, MENU_LINE3_YPOS, "[100-65535]");  //Hint
   //coil_addr
-  u8g2.drawStr(0, MENU_LINE4_YPOS, "4.Output Coil Addr");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE4_YPOS, "4. Output Coil Addr");
   xconvert(gStr1, "%05d", scada_setting.coil_addr);
-  u8g2.drawStr(128, MENU_LINE4_YPOS, gStr1);
+  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE4_YPOS, gStr1);
   xconvert(gStr1, "[0-%05d]", 65535 - scada_setting.max_coil);
   u8g2.drawStr(173, MENU_LINE4_YPOS, gStr1);  //Hint
 }
@@ -4588,25 +4861,25 @@ void MenuBufferPage10() {
   u8g2.clearBuffer();  // clear lcd ram buffer
   //scrollbar & title
   u8g2_draw_scrollbar();
-  u8g2_draw_arrow(138 - 6, MENU_LINE1_YPOS, 13 /*font_h*/, menuTotalItem /*totalItem*/);
+  u8g2_draw_arrow(MENU_COL2_XPOS - 6, MENU_LINE1_YPOS, 13 /*font_h*/, menuTotalItem /*totalItem*/);
   u8g2.setFont(u8g2_font_t0_12_mf);  // set font
-  u8g2.drawStr(0, MENU_TITLE_YPOS, "[SCADA MODBUS SETTINGS]");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_TITLE_YPOS, "[SCADA MODBUS SETTINGS]");
   //discrete_addr
-  u8g2.drawStr(0, MENU_LINE1_YPOS, "5.Discrete Input Addr");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE1_YPOS, "5. Discrete Input Addr");
   xconvert(gStr1, "%05d", scada_setting.discrete_addr);
-  u8g2.drawStr(138, MENU_LINE1_YPOS, gStr1);
+  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE1_YPOS, gStr1);
   xconvert(gStr1, "[0-%05d]", 65535 - scada_setting.max_discrete);
   u8g2.drawStr(183, MENU_LINE1_YPOS, gStr1);  //Hint
   //inputreg_addr
-  u8g2.drawStr(0, MENU_LINE2_YPOS, "6.Input Register Addr");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE2_YPOS, "6. Input Register Addr");
   xconvert(gStr1, "%05d", scada_setting.inputreg_addr);
-  u8g2.drawStr(138, MENU_LINE2_YPOS, gStr1);
+  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE2_YPOS, gStr1);
   xconvert(gStr1, "[0-%05d]", 65535 - scada_setting.max_inputreg);
   u8g2.drawStr(183, MENU_LINE2_YPOS, gStr1);  //Hint
   //holdreg_addr
-  u8g2.drawStr(0, MENU_LINE3_YPOS, "7.Hold Register Addr");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE3_YPOS, "7. Hold Register Addr");
   xconvert(gStr1, "%05d", scada_setting.holdreg_addr);
-  u8g2.drawStr(138, MENU_LINE3_YPOS, gStr1);
+  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE3_YPOS, gStr1);
   xconvert(gStr1, "[0-%05d]", 65535 - scada_setting.max_holdreg);
   u8g2.drawStr(183, MENU_LINE3_YPOS, gStr1);  //Hint
 }
@@ -4622,21 +4895,21 @@ void MenuBufferPage11() {
   u8g2_draw_scrollbar();
   u8g2_draw_arrow(100 - 6, MENU_LINE1_YPOS, 13 /*font_h*/, menuTotalItem /*totalItem*/);
   u8g2.setFont(u8g2_font_t0_12_mf);  // set font
-  u8g2.drawStr(0, MENU_TITLE_YPOS, "[SCADA SERIAL PORT SETTINGS]");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_TITLE_YPOS, "[SCADA SERIAL PORT SETTINGS]");
   //1.Baud rate
-  u8g2.drawStr(0, MENU_LINE1_YPOS, "1.Baud rate");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE1_YPOS, "1. Baud rate");
   xconvert(gStr1, "%06d", comport.baud.all);
   u8g2.drawStr(100, MENU_LINE1_YPOS, gStr1);
   //2.Data bits
-  u8g2.drawStr(0, MENU_LINE2_YPOS, "2.Data bits");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE2_YPOS, "2. Data bits");
   xconvert(gStr1, "%d", comport.databits);
   u8g2.drawStr(100, MENU_LINE2_YPOS, gStr1);
   //3.Stop bits
-  u8g2.drawStr(0, MENU_LINE3_YPOS, "3.Stop bits");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE3_YPOS, "3. Stop bits");
   xconvert(gStr1, "%d", comport.stopbits);
   u8g2.drawStr(100, MENU_LINE3_YPOS, gStr1);
   //4.Parity
-  u8g2.drawStr(0, MENU_LINE4_YPOS, "4.Parity");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE4_YPOS, "4. Parity");
   if (comport.parity == 0) xconvert(gStr1, "%s", "NONE");
   else if (comport.parity == 1) xconvert(gStr1, "%s", "ODD ");
   else if (comport.parity == 2) xconvert(gStr1, "%s", "EVEN");
@@ -4659,12 +4932,12 @@ void MenuBufferPage12() {
   }
   numHistoryRecords = num_records;
   xconvert(gStr1, "[HISTORY FAULT RECORD] - %d RECORD(s)", numHistoryRecords);
-  u8g2.drawStr(0, MENU_TITLE_YPOS, gStr1);
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_TITLE_YPOS, gStr1);
   if (eep.history[0].err.all != 0) {
     if (eep.history_index < MAX_HISTORY_FAULT_RECORD) {
       //DATE & TIME
       xconvert(gStr1, "%d/%02d/%02d %02d:%02d:%02d", eep.history[toggleHistory].dnt.year + 2000, eep.history[toggleHistory].dnt.month, eep.history[toggleHistory].dnt.day, eep.history[toggleHistory].dnt.hour, eep.history[toggleHistory].dnt.minute, eep.history[toggleHistory].dnt.second);
-      u8g2.drawStr(0, MENU_LINE1_YPOS, gStr1);
+      u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE1_YPOS, gStr1);
       //ERROR CODE
       xconvert(gStr1, "ERROR CODE:%03d", eep.history[toggleHistory].err.all);
       u8g2.drawStr(120, MENU_LINE1_YPOS, gStr1);
@@ -4681,7 +4954,7 @@ void MenuBufferPage12() {
       //data index error
     }
   } else {
-    u8g2.drawStr(75, MENU_LINE2_YPOS, "NO RECORD FOUND!");
+    u8g2.drawStr(75, MENU_LINE2_YPOS, "No records found!");
   }
   // Enter Key hold for 1s to
   if (keyEnterhold) {
@@ -4703,9 +4976,9 @@ void MenuBufferPage12() {
       updateEEPROM = true;  //save setting
       strcpy(userMsg[1], "FAULT HISTORY RESET!");
     } else {
-      strcpy(userMsg[0], "CANNOT PERFORM");
-      strcpy(userMsg[1], "FAULT HISTORY RESET");
-      strcpy(userMsg[2], "REMOVE FAULT FIRST!");
+      strcpy(userMsg[0], "CANNOT RESET HISTORY:" );
+      strcpy(userMsg[1], "PLEASE FIRST CLEAR ANY");
+      strcpy(userMsg[2], "EXISTING FAULT(S)!");
     }
   }
 }
@@ -4722,15 +4995,15 @@ void MenuBufferPage13() {
   //u8g2_draw_arrow(128 - 6, MENU_LINE3_YPOS, 13 /*font_h*/, menuTotalItem /*totalItem*/);
   u8g2.setFont(u8g2_font_t0_12_mf);  // set font
   if (showFactoryMenu == false) {
-    u8g2.drawStr(0, MENU_TITLE_YPOS, "[SYSTEM INFO]");
+    u8g2.drawStr(MENU_COL1_XPOS, MENU_TITLE_YPOS, "[SYSTEM INFO]");
     //1.Hardware Version
-    u8g2.drawStr(0, MENU_LINE1_YPOS, "1.Hardware Version");
-    u8g2.drawStr(128, MENU_LINE1_YPOS, HARDWARE_VERSION_STRING);
+    u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE1_YPOS, "1. Power Ctl Version");
+    u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE1_YPOS, POWERCTL_VERSION_STRING );
     //2.Software Version
-    u8g2.drawStr(0, MENU_LINE2_YPOS, "2.Software Version");
-    u8g2.drawStr(128, MENU_LINE2_YPOS, SOFTWARE_VERSION_STRING);
+    u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE2_YPOS, "2. System Ctl Version");
+    u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE2_YPOS, SYSTEMCTL_VERSION_STRING );
     //reset
-    u8g2.drawStr(32, MENU_LINE4_YPOS, "HOLD ENTER TO SOFTWARE RESET.");
+    u8g2.drawStr(32, MENU_LINE4_YPOS, "Hold ENTER to restart controller.");
     // Enter Key hold for 1s to software reset the ESP32
     if (keyEnterhold) {
       u8g2.clearBuffer();  // clear lcd ram buffer
@@ -4757,28 +5030,28 @@ void MenuBufferPage14() {
   u8g2_draw_scrollbar();
   u8g2_draw_arrow(138 - 6, MENU_LINE1_YPOS, 13 /*font_h*/, menuTotalItem /*totalItem*/);
   u8g2.setFont(u8g2_font_t0_12_mf);  // set font
-  u8g2.drawStr(0, MENU_TITLE_YPOS, "[FACTORY SETTING]");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_TITLE_YPOS, "[FACTORY SETTING]");
   //1.Factory Mode
-  u8g2.drawStr(0, MENU_LINE1_YPOS, "1.Lock Factory Mode");
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE1_YPOS, "1. Lock Factory Mode");
   if (status.motor.lock_factory_mode == true) {
-    u8g2.drawStr(138, MENU_LINE1_YPOS, "LOCKED");
+    u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE1_YPOS, "LOCKED");
   } else {
-    u8g2.drawStr(138, MENU_LINE1_YPOS, "UNLOCKED");
+    u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE1_YPOS, "UNLOCKED");
   }
   //2.3.show menu only when unlocked
   if (status.motor.lock_factory_mode == false) {
     //2.Maximum PSI
-    u8g2.drawStr(0, MENU_LINE2_YPOS, "2.Maximum PSI");
+    u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE2_YPOS, "2. Maximum PSI");
     xconvert(gStr1, "%05d psi", status.motor.max_psi_sensor.all);
-    u8g2.drawStr(138, MENU_LINE2_YPOS, gStr1);
+    u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE2_YPOS, gStr1);
     //3.Zero PSI Volt
-    u8g2.drawStr(0, MENU_LINE3_YPOS, "3.Zero PSI Volt");
+    u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE3_YPOS, "3. Zero PSI volt");
     xconvert(gStr1, "%05d mV", status.motor.zero_psi_sensor_volt.all);
-    u8g2.drawStr(138, MENU_LINE3_YPOS, gStr1);
+    u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE3_YPOS, gStr1);
     //4.Max. PSI Volt
-    u8g2.drawStr(0, MENU_LINE4_YPOS, "3.Max. PSI Volt");
+    u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE4_YPOS, "3. Max. PSI volt");
     xconvert(gStr1, "%05d mV", status.motor.max_psi_sensor_volt.all);
-    u8g2.drawStr(138, MENU_LINE4_YPOS, gStr1);
+    u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE4_YPOS, gStr1);
   }
 }
 

@@ -54,7 +54,11 @@ typedef struct
 {
   INT16_T rpm;               //Set rpm +/- 1000rpm
   bool onoff = OFF;          //ON/OFF
+  bool reset = false;        //Controller reset request
+  bool reset_ok = false;     //Controller reset response
   u8 mode = LOCAL_MODE;      //DIO/LOCAL/REMOTE
+  UINT16_T motor_model;      // byte[0] Motor model number 0 = 25, 1 = 35, 2 = 50, 3 = 70, 4 = GMI
+                             // byte[1] Board number 0 = A(0.002), 1 = D(0.005)
   bool communication_fail_action = 0;  //0 = Keep motor's last state, 1 = Stop motor
   u16 count = 0;             //Heartbeat out increment at 1000ms interval
   u16 prev_count = 0;        //Last heartbeat count

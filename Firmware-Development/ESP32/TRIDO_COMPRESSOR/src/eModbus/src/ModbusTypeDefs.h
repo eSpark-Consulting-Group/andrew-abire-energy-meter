@@ -8,6 +8,10 @@
 #include <stddef.h>
 #include <cstdint>
 
+#if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L)
+     #define register
+#endif
+
 namespace Modbus {
 
 enum FunctionCode : uint8_t {
