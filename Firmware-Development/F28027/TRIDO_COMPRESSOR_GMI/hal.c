@@ -55,7 +55,7 @@
 // **************************************************************************
 // the defines
 
-#define US_TO_CNT(A) ((((long double) A * (long double)USER_SYSTEM_FREQ_MHz) - 9.0L) / 5.0L)
+#define US_TO_CNT(A) ((((long double) A * (long double)gUserVar.USER_SYSTEM_FREQ_MHz) - 9.0L) / 5.0L)
 
 // **************************************************************************
 // the globals
@@ -647,14 +647,14 @@ HAL_Handle HAL_init(void *pMemory,const size_t numBytes)
 
 
   // initialize the current offset estimator handles
-  for(cnt=0;cnt<USER_NUM_CURRENT_SENSORS;cnt++)
+  for(cnt=0;cnt<gUserVar.USER_NUM_CURRENT_SENSORS;cnt++)
     {
       obj->offsetHandle_I[cnt] = OFFSET_init(&obj->offset_I[cnt],sizeof(obj->offset_I[cnt]));
     }
 
 
   // initialize the voltage offset estimator handles
-  for(cnt=0;cnt<USER_NUM_VOLTAGE_SENSORS;cnt++)
+  for(cnt=0;cnt<gUserVar.USER_NUM_VOLTAGE_SENSORS;cnt++)
     {
       obj->offsetHandle_V[cnt] = OFFSET_init(&obj->offset_V[cnt],sizeof(obj->offset_V[cnt]));
     }
@@ -772,7 +772,7 @@ void HAL_setParams(HAL_Handle handle,const USER_Params *pUserParams)
   HAL_setupPwms(handle,
                 (float_t)pUserParams->systemFreq_MHz,
                 pUserParams->pwmPeriod_usec,
-                USER_NUM_PWM_TICKS_PER_ISR_TICK);
+                gUserVar.USER_NUM_PWM_TICKS_PER_ISR_TICK);
 
 
   // setup the spiA

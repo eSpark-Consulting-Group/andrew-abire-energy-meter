@@ -10,6 +10,8 @@
 #ifdef FLASH
 #pragma DATA_SECTION(holdingRegs, "modbus_data");
 #pragma DATA_SECTION(mbmsg, "modbus_data");
+#pragma DATA_SECTION(mtrModel, "reserved_ram");
+#pragma DATA_SECTION(brdSeries, "reserved_ram");
 #endif
 
 extern HAL_Obj hal;
@@ -20,6 +22,10 @@ extern volatile MOTOR_Vars_t gMotorVars;
 
 bool overcurrentFlag = false;
 bool warncurrentFlag = false;
+
+uint16_t mtrModel;
+uint16_t brdSeries;
+float_t rDC_MOhm = 5.0;
 
 MODBUS_MSG_T mbmsg;
 SENSOR_T sensor;
@@ -35,6 +41,7 @@ MATH_EMAVG_C rpm_filter = { 0.0, 0.0, 0.001 };
 MATH_EMAVG_C motora_filter = { 0.0, 0.0, 0.001 };
 
 uint32_t resetCounter = 0;
+uint16_t resetState = 0;
 
 void modbus_setup()
 {
@@ -60,6 +67,9 @@ void modbus_setup()
     mbmsg.ocp_dcamp_set_f = 0.0;
     mbmsg.motor_current_running = 0.0;
     mbmsg.io.all = 0;
+    mbmsg.motor_model.all = 0;
+    mbmsg.reset = 0;
+    mbmsg.reset_ok = 0;
     error.all = 0;
     stat.all = 0;
     fault.all = 0;
@@ -131,7 +141,15 @@ void modbus_loop()
 
     // if Rsns = 1 mOhm, sensor gain = 20V/V
     // then 1A = 0.001V x 20V/V = 0.02V = 0.02V/3.3V*4095 = 24.81812 * IDC_SENSE_RESISTOR_MOHM
-    idc_filter.In = 10.0L * (float) IDC_ADC_RESULT/ (24.81812L * IDC_SENSE_RESISTOR_MOHM); //B7 SOC CH9
+    if(brdSeries == 1)
+    {
+        rDC_MOhm = 5.0; // D = 0.005
+    }
+    else if(brdSeries == 0)
+    {
+        rDC_MOhm = 2.0; // A = 0.002
+    }
+    idc_filter.In = 10.0L * (float) IDC_ADC_RESULT/ (24.81812L * rDC_MOhm); //B7 SOC CH9
     MATH_EMAVG_C(idc_filter);
     mbmsg.dccurrent_out = (int16_t) idc_filter.Out;
     holdingRegs[HOLDREG_OUT_BASE_ADDRESS + 2] = mbmsg.dccurrent_out; // DC bus current running     ->
@@ -187,6 +205,26 @@ void modbus_loop()
     holdingRegs[HOLDREG_OUT_BASE_ADDRESS + 8] = mbmsg.tank_pressure; // tank pressure  ->
     holdingRegs[HOLDREG_OUT_BASE_ADDRESS + 7] = mbmsg.io.all;        // DIO status     ->
 
+    if(mbmsg.reset == 1)
+    {
+      mbmsg.reset_ok = 1;
+      resetState = 1;
+    }
+    else
+    {
+        if(resetState == 1)
+        {
+          mtrModel = mbmsg.motor_model.bit.BYTE0;
+          brdSeries = mbmsg.motor_model.bit.BYTE1;
+          // reset
+          HAL_disablePwm(halHandle); // disable the PWM
+          gMotorVars.Flag_enableSys = false;
+          HAL_resetDevice(halHandle); // restart the device
+        }
+    }
+
+    holdingRegs[HOLDREG_OUT_BASE_ADDRESS + 9] = mbmsg.reset_ok; // response a reset ok
+
     modbus_update();
 
     //
@@ -206,8 +244,8 @@ void modbus_loop()
     {
         mbmsg.pressure_control_method = 0; // set to default "stop motor"
     }
-    mbmsg.start_psi = holdingRegs[HOLDREG_IN_BASE_ADDRESS + 9];      // start pressure set     <-
-    mbmsg.stop_psi = holdingRegs[HOLDREG_IN_BASE_ADDRESS + 10];      // stop speed set         <-
+    mbmsg.start_psi = (int16_t)holdingRegs[HOLDREG_IN_BASE_ADDRESS + 9];      // start pressure set     <-
+    mbmsg.stop_psi = (int16_t)holdingRegs[HOLDREG_IN_BASE_ADDRESS + 10];      // stop speed set         <-
     if (holdingRegs[HOLDREG_IN_BASE_ADDRESS + 11] <= 10) // check range to prevent fatal error
     {
         mbmsg.zero_psi_offset = holdingRegs[HOLDREG_IN_BASE_ADDRESS + 11]; // zero psi offset set      <-
@@ -216,10 +254,12 @@ void modbus_loop()
     {
         mbmsg.zero_psi_offset = 5; // set to default 0 psi offset
     }
-    mbmsg.max_psi_sensor = holdingRegs[HOLDREG_IN_BASE_ADDRESS + 12];           // max sensor psi set                     <-
-    mbmsg.zero_psi_sensor_volt = holdingRegs[HOLDREG_IN_BASE_ADDRESS + 13];     // zero psi sensor output volt set        <-
-    mbmsg.max_psi_sensor_volt = holdingRegs[HOLDREG_IN_BASE_ADDRESS + 14];      // max psi sensor output volt set         <-
-    mbmsg.communication_fail_action = holdingRegs[HOLDREG_IN_BASE_ADDRESS + 15];           // Communication fail action           <-
+    mbmsg.max_psi_sensor = holdingRegs[HOLDREG_IN_BASE_ADDRESS + 12];            // max sensor psi set                     <-
+    mbmsg.zero_psi_sensor_volt = holdingRegs[HOLDREG_IN_BASE_ADDRESS + 13];      // zero psi sensor output volt set        <-
+    mbmsg.max_psi_sensor_volt = holdingRegs[HOLDREG_IN_BASE_ADDRESS + 14];       // max psi sensor output volt set         <-
+    mbmsg.communication_fail_action = holdingRegs[HOLDREG_IN_BASE_ADDRESS + 15]; // Communication fail action              <-
+    mbmsg.motor_model.all = holdingRegs[HOLDREG_IN_BASE_ADDRESS + 16];             // Motor model                          <-
+    mbmsg.reset = holdingRegs[HOLDREG_IN_BASE_ADDRESS + 17];                       // Controller reset                     <-
 
     sensor.max_psi_sensor = mbmsg.max_psi_sensor;
     sensor.zero_psi_adc_reading = (uint16_t)((float)mbmsg.zero_psi_sensor_volt / 1000.0L * 400.0L);
@@ -264,7 +304,7 @@ void modbus_loop()
         //OTHERS - settings error
         if ((mbmsg.slow_down_dcv >= mbmsg.max_dcv_input) || (mbmsg.slow_down_dcv <= mbmsg.min_dcv_input)
          || (mbmsg.start_psi == 0) || (mbmsg.start_psi > sensor.max_start_psi)
-         || (mbmsg.stop_psi < 4 || mbmsg.stop_psi > sensor.max_stop_psi)
+         || ((mbmsg.stop_psi < 4) || (mbmsg.stop_psi > sensor.max_stop_psi))
          || (mbmsg.stop_psi - mbmsg.start_psi < 3)
          || (mbmsg.start_psi > mbmsg.stop_psi))
         {
@@ -291,10 +331,10 @@ void modbus_loop()
         {
             if (mbmsg.onoff_in || (stat.bit.onoff && (mbmsg.mode == 2)))
             {
-                if ((mbmsg.tank_pressure < mbmsg.start_psi) || ((65536 - mbmsg.tank_pressure) < mbmsg.start_psi))
-                {
-                    gMotorVars.Flag_Run_Identify = true;
-                }
+              if (mbmsg.tank_pressure < mbmsg.start_psi)
+              {
+                gMotorVars.Flag_Run_Identify = true; //start at max. sensor output < START_PSI
+              }
             }
             if (!stat.bit.onoff && (mbmsg.mode == 2))
             {
@@ -313,11 +353,11 @@ void modbus_loop()
         }
 
         //check tank pressure
-        if ((mbmsg.tank_pressure >= sensor.max_stop_psi) && ((65536 - mbmsg.tank_pressure) >= sensor.max_stop_psi)) //stop at max. sensor output > MAXIMUM_STOP_PSI
+        if (mbmsg.tank_pressure >= sensor.max_stop_psi)
         {
-            gMotorVars.Flag_Run_Identify = false;
+            gMotorVars.Flag_Run_Identify = false; //stop at max. sensor output > MAXIMUM_STOP_PSI
         }
-        else if ((mbmsg.tank_pressure >= mbmsg.stop_psi) && ((65536 - mbmsg.tank_pressure) >= mbmsg.stop_psi))
+        else if (mbmsg.tank_pressure >= mbmsg.stop_psi)
         {
             if (mbmsg.pressure_control_method == 2) // == DOUT3 CLOSE
             {
@@ -333,7 +373,7 @@ void modbus_loop()
             {
                 DO3_OPEN(); //DO3 High Z, nothing should be connected to DO3
                 mbmsg.io.bit.DO3 = 0;
-                gMotorVars.Flag_Run_Identify = false;
+                gMotorVars.Flag_Run_Identify = false; //stop at max. sensor output > STOP_PSI
             }
             // max. +3psi is allowed when the solenoid valve cannot release air pressure faster than motor compression
             if (mbmsg.tank_pressure >= mbmsg.stop_psi + 3)
@@ -341,7 +381,7 @@ void modbus_loop()
                 gMotorVars.Flag_Run_Identify = false;
             }
         }
-        else if ((mbmsg.tank_pressure <= (mbmsg.stop_psi - 3)) && ((65536 - mbmsg.tank_pressure) <= (mbmsg.stop_psi - 3)))
+        else if (mbmsg.tank_pressure <= mbmsg.stop_psi - 3)
         {
             if (mbmsg.pressure_control_method == 2) // == DOUT3 CLOSE
             {
@@ -394,14 +434,7 @@ void modbus_loop()
                 }
                 else //direction controlled by +/-rpm set
                 {
-                    if (mbmsg.speed_in > 0)
-                    {
-                        krpm_ref = _IQ(20.0L / 1000.0L);
-                    }
-                    else if (mbmsg.speed_in < 0)
-                    {
-                        krpm_ref = _IQ(-20.0L / 1000.0L);
-                    }
+                    krpm_ref = _IQ(sgn(mbmsg.speed_in)*20.0L / 1000.0L);
                 }
             }
         }
@@ -425,54 +458,6 @@ void modbus_loop()
             }
         }
 
-        /*
-        //ratiometrically speed limit
-        if(mbmsg.tank_pressure >= 90)
-        {
-            if(mbmsg.speed_in > 0.25)
-            krpm_ref = _IQ(0.25);
-        }
-        else if(mbmsg.tank_pressure >= 80)
-        {
-            if(mbmsg.speed_in > 0.26)
-            krpm_ref = _IQ(0.26);
-        }
-        else if(mbmsg.tank_pressure >= 70)
-        {
-            if(mbmsg.speed_in > 0.26)
-            krpm_ref = _IQ(0.26);
-        }
-        else if(mbmsg.tank_pressure >= 60)
-        {
-            if(mbmsg.speed_in > 0.275)
-            krpm_ref = _IQ(0.275);
-        }
-        else if(mbmsg.tank_pressure >= 50)
-        {
-            if(mbmsg.speed_in > 0.29)
-            krpm_ref = _IQ(0.29);
-        }
-        else if(mbmsg.tank_pressure >= 40)
-        {
-            if(mbmsg.speed_in > 0.31)
-            krpm_ref = _IQ(0.31);
-        }
-        else if(mbmsg.tank_pressure >= 30)
-        {
-            if(mbmsg.speed_in > 0.32)
-            krpm_ref = _IQ(0.32);
-        }
-        else if(mbmsg.tank_pressure >= 20)
-        {
-            if(mbmsg.speed_in > 0.33)
-            krpm_ref = _IQ(0.33);
-        }
-        else if(mbmsg.tank_pressure >= 10)
-        {
-            if(mbmsg.speed_in > 0.34)
-            krpm_ref = _IQ(0.34);
-        }*/
-
         gMotorVars.SpeedRef_krpm = krpm_ref;
 
         //over current protection
@@ -484,7 +469,7 @@ void modbus_loop()
         }
         else
         {
-            mbmsg.motor_current_running = _IQtoF(gMotorVars.Is_pu) * USER_IQ_FULL_SCALE_CURRENT_A / 1.414213562373L;
+            mbmsg.motor_current_running = _IQtoF(gMotorVars.Is_pu) * gUserVar.USER_IQ_FULL_SCALE_CURRENT_A / 1.414213562373L;
         }
 
         mbmsg.dccurrent_out_f = (float)mbmsg.dccurrent_out / 10.0L;

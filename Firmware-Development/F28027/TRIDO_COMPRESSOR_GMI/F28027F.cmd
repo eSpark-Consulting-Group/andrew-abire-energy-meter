@@ -85,8 +85,7 @@ PAGE 0:    /* Program Memory */
    ROM         : origin = 0x3FF27C, length = 0x000D44     /* Boot ROM */
    RESET       : origin = 0x3FFFC0, length = 0x000002     /* part of boot ROM  */
    VECTORS     : origin = 0x3FFFC2, length = 0x00003E     /* part of boot ROM  */
-   FLASHB_D    : origin = 0x3F0000, length = 0x006000     /* on-chip FLASH B, C and D */
-   D_FLASHA    : origin = 0x3F6000, length = 0x001F80     /* on-chip FLASH A */
+   FLASHA_D    : origin = 0x3F0000, length = 0x007F80     /* on-chip FLASH A, B, C and D */
    P_RAML0     : origin = 0x008000, length = 0x000C00     /* on-chip PRAM block L0 */
 
 PAGE 1 :   /* Data Memory */
@@ -94,7 +93,8 @@ PAGE 1 :   /* Data Memory */
            /* Registers remain on PAGE1                                                  */
 
    RAMM0_M1    : origin = 0x000000, length = 0x000600     /* on-chip RAM block M0 + M1. 0x600 to 0x800 reserved for InstaSPIN */
-   D_RAML0     : origin = 0x008C00, length = 0x000400     /* on-chip DRAM block L0 */
+   D_RAML0     : origin = 0x008C00, length = 0x000350     /* on-chip DRAM block L0 legnth = 0x400*/
+   D_RAML0_NOINIT : origin = 0x008F50, length = 0x000050     /* on-chip DRAM block L0 */
 }
 
 /* Allocate sections to memory blocks.
@@ -107,11 +107,11 @@ PAGE 1 :   /* Data Memory */
 SECTIONS
 {
    /* Allocate program areas: */
-   .cinit              : > FLASHB_D     PAGE = 0
-   .pinit              : > FLASHB_D,    PAGE = 0
-   .text               : > FLASHB_D     PAGE = 0
+   .cinit              : > FLASHA_D     PAGE = 0
+   .pinit              : > FLASHA_D,    PAGE = 0
+   .text               : > FLASHA_D     PAGE = 0
    codestart           : > BEGIN        PAGE = 0
-   ramfuncs            : LOAD = FLASHB_D,
+   ramfuncs            : LOAD = FLASHA_D,
                          RUN = P_RAML0,
                          LOAD_START(_RamfuncsLoadStart),
                          LOAD_END(_RamfuncsLoadEnd),
@@ -122,7 +122,7 @@ SECTIONS
    csm_rsvd            : > CSM_RSVD     PAGE = 0
 
    /* Allocate uninitalized data sections: */
-   .stack              : > D_RAML0     PAGE = 1
+   .stack              : > D_RAML0      PAGE = 1
    .ebss               : > RAMM0_M1     PAGE = 1
    .esysmem            : > RAMM0_M1     PAGE = 1
 
@@ -134,13 +134,15 @@ SECTIONS
 
    modbus_data		   : > D_RAML0      PAGE = 1
 
+   reserved_ram        : > D_RAML0_NOINIT      PAGE = 1, TYPE = NOINIT
+
    /* Initalized sections go in Flash */
    /* For SDFlash to program these, they must be allocated to page 0 */
-   .econst             : > D_FLASHA,    PAGE = 0
-   .switch             : > D_FLASHA,    PAGE = 0
+   .econst             : > FLASHA_D,    PAGE = 0
+   .switch             : > FLASHA_D,    PAGE = 0
 
    /* Allocate IQ math areas: */
-   IQmath              : > FLASHB_D     PAGE = 0            /* Math Code */
+   IQmath              : > FLASHA_D     PAGE = 0            /* Math Code */
    IQmathTables        : > IQTABLES,    PAGE = 0, TYPE = NOLOAD
 
    /* Uncomment the section below if calling the IQNexp() or IQexp()
@@ -181,7 +183,6 @@ SECTIONS
    /* DSECT  */
    .reset              : > RESET,      PAGE = 0, TYPE = DSECT
    vectors             : > VECTORS     PAGE = 0, TYPE = DSECT
-
 }
 
 /*

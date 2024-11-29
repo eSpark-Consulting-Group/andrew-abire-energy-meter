@@ -71,7 +71,7 @@ change struct MOTOR_Vars_t, Id_A to Id_pu
 
 //! \brief Defines the speed acceleration scale factor.
 //!
-#define MAX_ACCEL_KRPMPS_SF  _IQ(USER_MOTOR_NUM_POLE_PAIRS*1000.0/USER_TRAJ_FREQ_Hz/USER_IQ_FULL_SCALE_FREQ_Hz/60.0)
+#define MAX_ACCEL_KRPMPS_SF  _IQ(gUserVar.USER_MOTOR_NUM_POLE_PAIRS*1000.0/gUserVar.USER_TRAJ_FREQ_Hz/gUserVar.USER_IQ_FULL_SCALE_FREQ_Hz/60.0)
 
 //! \brief Initialization values of global variables
 //!

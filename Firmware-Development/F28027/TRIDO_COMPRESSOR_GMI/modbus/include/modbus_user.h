@@ -5,9 +5,9 @@
 #include "userio.h"
 
 #define MODBUS_BAUDRATE            SCI_BaudRate_115_2_kBaud
-#define TOTAL_PACKETS              25
+#define TOTAL_PACKETS              28
 #define HOLDREG_IN_BASE_ADDRESS    0
-#define HOLDREG_OUT_BASE_ADDRESS   16
+#define HOLDREG_OUT_BASE_ADDRESS   18
 
 #define AIN1                       hal.adcHandle->ADCRESULT[10]
 #define AIN2                       hal.adcHandle->ADCRESULT[11]
@@ -21,6 +21,20 @@
 #define MAXIMUM_RPM                400.0L
 
 #define VOLTAGE_CORRECTION_FACTOR  1.0L
+
+__inline int sgn(int x) { return __max(-1, __min(1, x)); }
+
+struct UINT16_T_BIT_T
+{
+  uint16_t BYTE0:8;
+  uint16_t BYTE1:8;
+};
+
+union UINT16_T
+{
+  struct UINT16_T_BIT_T bit;
+  uint16_t all;
+};
 
 struct ERROR_DATA_BIT_T
 {
@@ -86,8 +100,8 @@ typedef struct
   uint16_t max_psi_adc_reading;
   uint16_t err_psi_adc_reading_low;
   uint16_t err_psi_adc_reading_high;
-  uint16_t max_start_psi;
-  uint16_t max_stop_psi;
+  int16_t max_start_psi;
+  int16_t max_stop_psi;
 } SENSOR_T;
 
 extern SENSOR_T sensor;
@@ -114,15 +128,18 @@ typedef struct
   uint16_t ocp_dcamp_set;     // Current Limit Ratio
   float motor_current_running;
   float ocp_dcamp_set_f;
-  uint16_t start_psi;     // Start pressure
-  uint16_t stop_psi;      // Stop pressure
-  uint16_t tank_pressure; // Tank pressure
+  int16_t start_psi;     // Start pressure
+  int16_t stop_psi;      // Stop pressure
+  int16_t tank_pressure;  // Tank pressure
   uint16_t zero_psi_offset; // Pressure sensor zero PSI offset, 9 = -1psi, 10 = 0psi, 11 = 1psi...
   uint16_t pressure_control_method; //[0=STOP MOTOR, 1=DOUT1 OPEN, 2=DOUT1 CLOSE]
   uint16_t max_psi_sensor;
   uint16_t zero_psi_sensor_volt;
   uint16_t max_psi_sensor_volt;
   union IO_T io;          // Digital input/output states
+  union UINT16_T motor_model;  // 0-3 Model model 0 = 25, 1 = 35, 2 = 50, 3 = 70, 4 = GMI
+  uint16_t reset;              // controller reset
+  uint16_t reset_ok;           // controller reset_ok
 } MODBUS_MSG_T;
 
 extern MODBUS_MSG_T mbmsg;

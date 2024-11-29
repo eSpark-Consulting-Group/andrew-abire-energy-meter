@@ -1,7 +1,6 @@
 /******************************************************************************************************
  *   Project: Compressor Application
- *   Version: COMPRESSOR_V1.3
- *   Modified: 09/03/2023
+ *   Version: 22/05/2023
  *******************************************************************************************************/
 
 // **************************************************************************
@@ -73,7 +72,7 @@ CTRL_Obj *controller_obj;
 CTRL_Obj ctrl; //v1p7 format
 #endif
 
-volatile MOTOR_Vars_t gMotorVars = MOTOR_Vars_INIT;
+volatile MOTOR_Vars_t gMotorVars;
 
 #ifdef FLASH
 // Used for running BackGround in flash, and ISR in RAM
@@ -90,9 +89,6 @@ extern uint16_t *switch_start, *switch_end, *switch_ram_load;
 SVGENCURRENT_Obj svgencurrent;
 SVGENCURRENT_Handle svgencurrentHandle;
 #endif
-
-// set the offset, default value of 1 microsecond
-int16_t gCmpOffset = (int16_t) (1.0 * USER_SYSTEM_FREQ_MHz);
 
 MATH_vec3 gIavg = { _IQ(0.0), _IQ(0.0), _IQ(0.0) };
 uint16_t gIavg_shift = 1;
@@ -116,95 +112,102 @@ _iq voltageOffsetUnBias_pu;
 // assembly file
 extern void usDelay(uint32_t Count);
 
-void gMotorVars_init()
+void MotorVar_init(volatile MOTOR_Vars_t *pvar)
 {
-    gMotorVars.Flag_enableSys = false;
-    gMotorVars.Flag_Run_Identify = false;
-    gMotorVars.Flag_MotorIdentified = false;
-    gMotorVars.Flag_enableForceAngle = true;
-    gMotorVars.Flag_enableFieldWeakening = false;
-    gMotorVars.Flag_enableRsRecalc = false;
-    gMotorVars.Flag_enableUserParams = true;
-    gMotorVars.Flag_enableOffsetcalc = true;
-    gMotorVars.Flag_enablePowerWarp = false;
-    gMotorVars.Flag_enableSpeedCtrl = false;
+    pvar->Flag_enableSys = false;
+    pvar->Flag_Run_Identify = false;
+    pvar->Flag_MotorIdentified = false;
+    pvar->Flag_enableForceAngle = true;
+    pvar->Flag_enableFieldWeakening = false;
+    pvar->Flag_enableRsRecalc = false;
+    pvar->Flag_enableUserParams = true;
+    pvar->Flag_enableOffsetcalc = true;
+    pvar->Flag_enablePowerWarp = false;
+    pvar->Flag_enableSpeedCtrl = false;
 
-    gMotorVars.Flag_enableRun = false;
-    gMotorVars.Flag_RunState = false;
-    gMotorVars.Flag_enableFlyingStart = false;
+    pvar->Flag_enableRun = false;
+    pvar->Flag_RunState = false;
+    pvar->Flag_enableFlyingStart = false;
 
-    gMotorVars.CtrlState = CTRL_State_Idle;
-    gMotorVars.EstState = EST_State_Idle;
+    pvar->CtrlState = CTRL_State_Idle;
+    pvar->EstState = EST_State_Idle;
 
-    gMotorVars.UserErrorCode = USER_ErrorCode_NoError;
+    pvar->UserErrorCode = USER_ErrorCode_NoError;
 
-    gMotorVars.CtrlVersion.rsvd = 0;
-    gMotorVars.CtrlVersion.targetProc = CTRL_TargetProc_Unknown;
-    gMotorVars.CtrlVersion.major = 0;
-    gMotorVars.CtrlVersion.minor = 0;
+    pvar->CtrlVersion.rsvd = 0;
+    pvar->CtrlVersion.targetProc = CTRL_TargetProc_Unknown;
+    pvar->CtrlVersion.major = 0;
+    pvar->CtrlVersion.minor = 0;
 
-    gMotorVars.SpeedRef_pu = _IQ(0.0);
-    gMotorVars.SpeedRef_krpm = _IQ(0.1);
-    gMotorVars.SpeedTraj_krpm = _IQ(0.0);
-    gMotorVars.MaxAccel_krpmps = _IQ(0.2);
-    gMotorVars.Speed_krpm = _IQ(0.0);
-    gMotorVars.OverModulation = _IQ(USER_MAX_VS_MAG_PU);
-    gMotorVars.RsOnLineCurrent_A = _IQ(0.1 * USER_MOTOR_MAX_CURRENT);
-    gMotorVars.SvgenMaxModulation_ticks = 400;
-    gMotorVars.Flux_Wb = _IQ(0.0);
-    gMotorVars.Torque_Nm = _IQ(0.0);
+    pvar->IdRef_A =  _IQ(0.0);
+    pvar->IqRef_A =  _IQ(0.0);
+    pvar->SpeedRef_pu = _IQ(0.0);
+    pvar->SpeedRef_krpm = _IQ(0.1);
+    pvar->SpeedTraj_krpm = _IQ(0.0);
+    pvar->MaxAccel_krpmps = _IQ(0.2);
+    pvar->Speed_krpm = _IQ(0.0);
+    pvar->OverModulation = _IQ(gUserVar.USER_MAX_VS_MAG_PU);
+    pvar->RsOnLineCurrent_A = _IQ(0.1 * gUserVar.USER_MOTOR_MAX_CURRENT);
+    pvar->SvgenMaxModulation_ticks = 400;
+    pvar->Flux_Wb = _IQ(0.0);
+    pvar->Torque_Nm = _IQ(0.0);
 
-    gMotorVars.MagnCurr_A = 0.0;
-    gMotorVars.Rr_Ohm = 0.0;
-    gMotorVars.Rs_Ohm = 0.0;
-    gMotorVars.RsOnLine_Ohm = 0.0;
-    gMotorVars.Lsd_H = 0.0;
-    gMotorVars.Lsq_H = 0.0;
-    gMotorVars.Flux_VpHz = 0.0;
+    pvar->MagnCurr_A = 0.0;
+    pvar->Rr_Ohm = 0.0;
+    pvar->Rs_Ohm = 0.0;
+    pvar->RsOnLine_Ohm = 0.0;
+    pvar->Lsd_H = 0.0;
+    pvar->Lsq_H = 0.0;
+    pvar->Flux_VpHz = 0.0;
 
-    gMotorVars.ipd_excFreq_Hz = 0.0;
-    gMotorVars.ipd_Kspd = _IQ(0.0);
-    gMotorVars.ipd_excMag_coarse_pu = _IQ(0.0);
-    gMotorVars.ipd_excMag_fine_pu = _IQ(0.0);
-    gMotorVars.ipd_waitTime_coarse_sec = 0.0;
-    gMotorVars.ipd_waitTime_fine_sec = 0.0;
+    pvar->ipd_excFreq_Hz = 0.0;
+    pvar->ipd_Kspd = _IQ(0.0);
+    pvar->ipd_excMag_coarse_pu = _IQ(0.0);
+    pvar->ipd_excMag_fine_pu = _IQ(0.0);
+    pvar->ipd_waitTime_coarse_sec = 0.0;
+    pvar->ipd_waitTime_fine_sec = 0.0;
 
-    gMotorVars.Kp_spd = _IQ(0.0);
-    gMotorVars.Ki_spd = _IQ(0.0);
+    pvar->Kp_spd = _IQ(0.0);
+    pvar->Ki_spd = _IQ(0.0);
 
-    gMotorVars.Kp_Idq = _IQ(0.0);
-    gMotorVars.Ki_Idq = _IQ(0.0);
+    pvar->Kp_Idq = _IQ(0.0);
+    pvar->Ki_Idq = _IQ(0.0);
 
-    gMotorVars.Vd = _IQ(0.0);
-    gMotorVars.Vq = _IQ(0.0);
-    gMotorVars.Vs = _IQ(0.0);
-    gMotorVars.VsRef = _IQ(0.8 * USER_MAX_VS_MAG_PU);
-    gMotorVars.VdcBus_kV = _IQ(0.0);
+    pvar->Vd = _IQ(0.0);
+    pvar->Vq = _IQ(0.0);
+    pvar->Vs = _IQ(0.0);
+    pvar->VsRef = _IQ(0.8 * gUserVar.USER_MAX_VS_MAG_PU);
+    pvar->VdcBus_kV = _IQ(0.0);
 
-//    gMotorVars.Id_A = _IQ(0.0);
-//    gMotorVars.Iq_A = _IQ(0.0);
-//    gMotorVars.Is_A = _IQ(0.0);
+    pvar->Id_pu = _IQ(0.0);
+    pvar->Iq_pu = _IQ(0.0);
+    pvar->Is_pu = _IQ(0.0);
 
-    gMotorVars.I_bias.value[0] = 0;
-    gMotorVars.I_bias.value[1] = 0;
-    gMotorVars.I_bias.value[2] = 0;
-    gMotorVars.V_bias.value[0] = 0;
-    gMotorVars.V_bias.value[1] = 0;
-    gMotorVars.V_bias.value[2] = 0;
+    pvar->Id_A = _IQ(0.0);
+    pvar->Iq_A = _IQ(0.0);
+    pvar->Is_A = _IQ(0.0);
 
-    gMotorVars.SpeedSet_krpm = _IQ(0.6);
+    pvar->I_bias.value[0] = 0;
+    pvar->I_bias.value[1] = 0;
+    pvar->I_bias.value[2] = 0;
+    pvar->V_bias.value[0] = 0;
+    pvar->V_bias.value[1] = 0;
+    pvar->V_bias.value[2] = 0;
 
-    gMotorVars.angle_sen_pu = _IQ(0.0);
-    gMotorVars.angle_est_pu = _IQ(0.0);
-    gMotorVars.speed_sen_pu = _IQ(0.0);
-    gMotorVars.speed_est_pu = _IQ(0.0);
+    pvar->SpeedSet_krpm = _IQ(0.0);
 
-    gMotorVars.speedHigh_hall2fast_pu = _IQ(0.0);
-    gMotorVars.speedLow_hall2fast_pu = _IQ(0.0);
-    gMotorVars.IdSet_A = _IQ(0.0);
-    gMotorVars.IqSet_A = _IQ(0.0);
-    gMotorVars.IdRef_pu = _IQ(0.0);
-    gMotorVars.IqRef_pu = _IQ(0.0);
+    pvar->angle_sen_pu = _IQ(0.0);
+    pvar->angle_est_pu = _IQ(0.0);
+    pvar->speed_sen_pu = _IQ(0.0);
+    pvar->speed_est_pu = _IQ(0.0);
+
+    pvar->speedHigh_hall2fast_pu = _IQ(0.0);
+    pvar->speedLow_hall2fast_pu = _IQ(0.0);
+
+    pvar->IdSet_A = _IQ(0.0);
+    pvar->IqSet_A = _IQ(0.0);
+    pvar->IdRef_pu = _IQ(0.0);
+    pvar->IqRef_pu = _IQ(0.0);
 }
 
 void main(void)
@@ -243,11 +246,27 @@ void main(void)
 
     usDelay(300);
 
+    // set the user variables - gUserVar
+    USER_setVars(&gUserVar, 1);
+
+    // set the user parameters - gUserParams by user variables - gUserVar
+    USER_setParams(&gUserParams, &gUserVar);
+
+    // initialize the gMotorVars variables
+    //<! the following variables should be at known state before calling the below function
+    // gUserVar
+    MotorVar_init(&gMotorVars);
+
     // initialize the hardware abstraction layer
+    //<! the following variables should be at known state before calling the below function
+    //<! gUserVar.USER_NUM_CURRENT_SENSORS;
+    //<! gUserVar.USER_NUM_VOLTAGE_SENSORS;
     halHandle = HAL_init(&hal, sizeof(hal));
 
     // check for errors in user parameters
-    USER_checkForErrors(&gUserParams);
+    //<! the following variables should be at known state before calling the below function
+    //<! gUserParams, gUserVar
+    USER_checkForErrors(&gUserParams, &gUserVar);
 
     // store user parameter error in global variable
     gMotorVars.UserErrorCode = USER_getErrorCode(&gUserParams);
@@ -260,9 +279,6 @@ void main(void)
             gMotorVars.Flag_enableSys = false;
         }
     }
-
-    // initialize the user parameters
-    USER_setParams(&gUserParams);
 
     // set the hardware abstraction layer parameters
     HAL_setParams(halHandle, &gUserParams);
@@ -294,8 +310,8 @@ void main(void)
     // setup svgen current
     {
         float_t minWidth_microseconds = 2.0;  //0.5-(2*2ms*8kHz*0.001)=0.468
-        uint16_t minWidth_counts = (uint16_t) (minWidth_microseconds * USER_SYSTEM_FREQ_MHz);
-        float_t fdutyLimit = 0.5 - (2.0 * minWidth_microseconds * USER_PWM_FREQ_kHz * 0.001);  //pwm duty limit 0.5 to -0.5
+        uint16_t minWidth_counts = (uint16_t) (minWidth_microseconds * gUserVar.USER_SYSTEM_FREQ_MHz);
+        float_t fdutyLimit = 0.5 - (2.0 * minWidth_microseconds * gUserVar.USER_PWM_FREQ_kHz * 0.001);  //pwm duty limit 0.5 to -0.5
         _iq dutyLimit = _IQ(fdutyLimit);
 
         SVGENCURRENT_setMinWidth(svgencurrentHandle, minWidth_counts);
@@ -360,10 +376,10 @@ void main(void)
 #endif
 
     // compute scaling factors for flux and torque calculations
-    gFlux_pu_to_Wb_sf = USER_computeFlux_pu_to_Wb_sf();
-    gFlux_pu_to_VpHz_sf = USER_computeFlux_pu_to_VpHz_sf();
-    gTorque_Ls_Id_Iq_pu_to_Nm_sf = USER_computeTorque_Ls_Id_Iq_pu_to_Nm_sf();
-    gTorque_Flux_Iq_pu_to_Nm_sf = USER_computeTorque_Flux_Iq_pu_to_Nm_sf();
+    gFlux_pu_to_Wb_sf = USER_computeFlux_pu_to_Wb_sf(&gUserVar);
+    gFlux_pu_to_VpHz_sf = USER_computeFlux_pu_to_VpHz_sf(&gUserVar);
+    gTorque_Ls_Id_Iq_pu_to_Nm_sf = USER_computeTorque_Ls_Id_Iq_pu_to_Nm_sf(&gUserVar);
+    gTorque_Flux_Iq_pu_to_Nm_sf = USER_computeTorque_Flux_Iq_pu_to_Nm_sf(&gUserVar);
 
     // Below two lines code for Flash Testing, need to be commented
     gMotorVars.Flag_enableSys = true;
@@ -394,7 +410,7 @@ void main(void)
     for (;;)
     {
         // Waiting for enable system flag to be set
-        while (!(gMotorVars.Flag_enableSys))
+        while (!gMotorVars.Flag_enableSys)
         {
             readIOstates();
             modbus_loop(); // enable modbus communication
@@ -505,7 +521,7 @@ void main(void)
                             && (gMotorVars.CtrlVersion.minor == 6))
                     {
                         // call this function to fix 1p6
-                        USER_softwareUpdate1p6(ctrlHandle);
+                        USER_softwareUpdate1p6(ctrlHandle, &gUserVar);
                     }
                 }
             }
@@ -525,7 +541,7 @@ void main(void)
                 {
                     Flag_Latch_softwareUpdate = false;
 
-                    USER_calcPIgains(ctrlHandle);
+                    USER_calcPIgains(ctrlHandle, &gUserVar);
 
                     // initialize the watch window kp and ki current values with pre-calculated values
                     gMotorVars.Kp_Idq = CTRL_getKp(ctrlHandle, CTRL_Type_PID_Id);
@@ -558,13 +574,13 @@ void main(void)
             {
                 // set the speed reference
                 CTRL_setSpd_ref_krpm(ctrlHandle, gMotorVars.SpeedRef_krpm);
-                gMotorVars.IdRef_pu = _IQmpy(gMotorVars.IdRef_A, _IQ(1.0/USER_IQ_FULL_SCALE_CURRENT_A));
+                gMotorVars.IdRef_pu = _IQmpy(gMotorVars.IdRef_A, _IQ(1.0/gUserVar.USER_IQ_FULL_SCALE_CURRENT_A));
             }
             else
             {
                 // update Iq reference
-                gMotorVars.IqRef_pu = _IQmpy(gMotorVars.IqRef_A, _IQ(1.0/USER_IQ_FULL_SCALE_CURRENT_A));
-                gMotorVars.IdRef_pu = _IQmpy(gMotorVars.IdRef_A, _IQ(1.0/USER_IQ_FULL_SCALE_CURRENT_A));
+                gMotorVars.IqRef_pu = _IQmpy(gMotorVars.IqRef_A, _IQ(1.0/gUserVar.USER_IQ_FULL_SCALE_CURRENT_A));
+                gMotorVars.IdRef_pu = _IQmpy(gMotorVars.IdRef_A, _IQ(1.0/gUserVar.USER_IQ_FULL_SCALE_CURRENT_A));
                 updateIdIqRef(ctrlHandle);
             }
 #endif
@@ -783,7 +799,7 @@ void updateGlobalVariables_motor(CTRL_Handle handle)
     gMotorVars.Is_A = gMotorVars.Is_pu;
 
     // Get the DC bus voltage
-    gMotorVars.VdcBus_kV = _IQmpy(gAdcData.dcBus, _IQ(USER_IQ_FULL_SCALE_VOLTAGE_V/1000.0));
+    gMotorVars.VdcBus_kV = _IQmpy(gAdcData.dcBus, _IQ(gUserVar.USER_IQ_FULL_SCALE_VOLTAGE_V/1000.0));
 
     // get the estimator angle and frequency values
     gMotorVars.angle_est_pu = EST_getAngle_pu(ctrlHandle->estHandle);

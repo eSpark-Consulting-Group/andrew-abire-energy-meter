@@ -2127,9 +2127,9 @@ inline void CTRL_setSpdMax(CTRL_Handle handle, const _iq spdMax)
 inline _iq CTRL_angleDelayComp(CTRL_Handle handle, const _iq angle_pu)
 {
   CTRL_Obj *obj = (CTRL_Obj *)handle;
-  _iq angleDelta_pu = _IQmpy(EST_getFm_pu(obj->estHandle),_IQ(USER_IQ_FULL_SCALE_FREQ_Hz/(USER_PWM_FREQ_kHz*1000.0)));
+  _iq angleDelta_pu = _IQmpy(EST_getFm_pu(obj->estHandle),_IQ(gUserVar.USER_IQ_FULL_SCALE_FREQ_Hz/(gUserVar.USER_PWM_FREQ_kHz*1000.0)));
   _iq angleUncomp_pu = angle_pu;
-  _iq angleCompFactor = _IQ(1.0 + (float_t)USER_NUM_PWM_TICKS_PER_ISR_TICK * (float_t)USER_NUM_ISR_TICKS_PER_CTRL_TICK * ((float_t)USER_NUM_CTRL_TICKS_PER_EST_TICK - 0.5));
+  _iq angleCompFactor = _IQ(1.0 + (float_t)gUserVar.USER_NUM_PWM_TICKS_PER_ISR_TICK * (float_t)gUserVar.USER_NUM_ISR_TICKS_PER_CTRL_TICK * ((float_t)gUserVar.USER_NUM_CTRL_TICKS_PER_EST_TICK - 0.5));
   _iq angleDeltaComp_pu = _IQmpy(angleDelta_pu, angleCompFactor);
   uint32_t angleMask = ((uint32_t)0xFFFFFFFF >> (32 - GLOBAL_Q));
   _iq angleTmp_pu;
@@ -2145,7 +2145,7 @@ inline _iq CTRL_angleDelayComp(CTRL_Handle handle, const _iq angle_pu)
   // account for sign
   if(angleTmp_pu < 0)
     {
-   	  angleComp_pu = -angleComp_pu;
+      angleComp_pu = -angleComp_pu;
     }
 
   return(angleComp_pu);
