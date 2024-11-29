@@ -3840,7 +3840,7 @@ void loop() {
         status.motor.duty = 100 * status.motor.runtime_total / status.motor.cycletime_total;
       // set_cycletime 5 = 0.5hr, 10 = 1hr, 240 = 24hr
       // cycletime_total = no. of min, set_cycletime = no. of hour x 10
-      if (status.motor.cycletime_total >= (status.motor.set_cycletime.all * 6)) {
+      if (status.motor.cycletime_total % (status.motor.set_cycletime.all * 6) == 0) {
         if (eep.motor.saved_record_index >= NO_OF_SAVED_RECORD) {
           eep.motor.saved_record_index = 0;
         }
@@ -3895,22 +3895,22 @@ void loop() {
         status.motor.ram_record_index++;
 
         //reset runtime
-        status.motor.runtime_sec = 0;
-        status.motor.runtime_min = 0;
-        status.motor.runtime_hour = 0;
-        status.motor.runtime_day = 0;
-        status.motor.runtime_total = 0;
-        //reset cycletime
-        status.motor.cycletime_sec = 0;
-        status.motor.cycletime_min = 0;
-        status.motor.cycletime_hour = 0;
-        status.motor.cycletime_day = 0;
-        status.motor.cycletime_total = 0;
-        //reset duty which is update on LCD every 1 min
-        status.motor.duty = 0;
-        //reset counters
-        //status.motor.ram_record_index = 0;
-        //currentIndexRam = 0;
+        // status.motor.runtime_sec = 0;
+        // status.motor.runtime_min = 0;
+        // status.motor.runtime_hour = 0;
+        // status.motor.runtime_day = 0;
+        // status.motor.runtime_total = 0;
+        // //reset cycletime
+        // status.motor.cycletime_sec = 0;
+        // status.motor.cycletime_min = 0;
+        // status.motor.cycletime_hour = 0;
+        // status.motor.cycletime_day = 0;
+        // status.motor.cycletime_total = 0;
+        // //reset duty which is update on LCD every 1 min
+        // status.motor.duty = 0;
+        // //reset counters
+        // //status.motor.ram_record_index = 0;
+        // //currentIndexRam = 0;
       }
     }
     //
