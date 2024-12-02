@@ -101,9 +101,44 @@ void modbus_setup()
 }
 
 int16_t tank_pressure = 999;
+int16_t spikeCounter = 0;
+float stableInputVoltage = 00.0;
+
+
+void checkTransientVdcSpikes()
+{
+    static uint16_t updateCounter = 0;
+    static uint32_t lastUpdatedTime = 0;
+
+    if (vdc_filter.Out > mbmsg.min_dcv_input && vdc_filter.Out < mbmsg.max_dcv_input)
+    {   
+        stableInputVoltage = 00.0;
+        return;
+    }
+
+    if ((Cputimer1IntCount - lastUpdatedTime) >= (20000UL * 300)) // 5 minutes
+    {
+        if (updateCounter < 5)
+        {
+            updateCounter++;
+            stableInputVoltage = (stableInputVoltage + vdc_filter.In) / 2;
+        }
+        else
+        {
+            lastUpdatedTime = Cputimer1IntCount;
+            updateCounter = 0;
+        }
+    }
+    if (spikeCounter >= 5)
+    {
+        spikeCounter = 0;
+        // mcu.shutdown;
+    }
+}
 
 void modbus_loop()
 {
+    checkTransientVdcSpikes();
     _iq krpm_ref = 0;
 
     holdingRegs[HOLDREG_OUT_BASE_ADDRESS + 6] = mbmsg.heartbeat_out;  // controller heartbeat       ->

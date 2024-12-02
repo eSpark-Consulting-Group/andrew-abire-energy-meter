@@ -19,6 +19,7 @@ void sendResponse(uint16_t bufferSize);
 MB_T mb;
 uint32_t Cputimer1IntCount = 0;
 uint32_t Cputimer2IntCount = 0;
+uint32_t msTimer1Count = 0;
 extern bool overcurrentFlag;
 extern bool warncurrentFlag;
 extern union FAULT_T fault;
@@ -68,6 +69,13 @@ __interrupt void cpu_timer1_isr(void)
     else
     {
         to.t15TimeoutFlag = 0;
+    }
+
+    if (stableInputVoltage > 0 && Cputimer1IntCount - msTimer1Count >= 1000UL)
+    {
+        msTimer1Count = Cputimer1IntCount;
+        if ((mbmsg.dcvoltage_out * 2) > stableInputVoltage)
+            spikeCounter++;
     }
 
     Cputimer1IntCount++;
