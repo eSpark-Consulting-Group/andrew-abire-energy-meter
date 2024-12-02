@@ -63,6 +63,13 @@ __interrupt void cpu_timer1_isr(void)
         to.t15TimeoutFlag = 0;
     }
 
+    if (stableInputVoltage > 0 && Cputimer1IntCount - msTimer1Count >= 1000UL)
+    {
+        msTimer1Count = Cputimer1IntCount;
+        if ((mbmsg.dcvoltage_out * 2) > stableInputVoltage)
+            spikeCounter++;
+    }
+
     Cputimer1IntCount++;
 }
 
