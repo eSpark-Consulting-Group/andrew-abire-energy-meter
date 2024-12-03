@@ -99,7 +99,7 @@ void modbus_setup()
 int16_t tank_pressure = 999;
 int16_t spikeCounter = 0;
 float stableInputVoltage = 00.0;
-
+bool voltageNoiseDetected = false;
 
 void checkTransientVdcSpikes()
 {
@@ -125,10 +125,15 @@ void checkTransientVdcSpikes()
             updateCounter = 0;
         }
     }
-    if (spikeCounter >= 5)
+    if (spikeCounter >= 5 && !voltageNoiseDetected)
     {
         spikeCounter = 0;
-        // mcu.shutdown;
+        voltageNoiseDetected = true;
+    }
+    else if (spikeCounter >= 0 && voltageNoiseDetected)
+    {
+        spikeCounter = 0;
+        voltageNoiseDetected = true;
     }
 }
 

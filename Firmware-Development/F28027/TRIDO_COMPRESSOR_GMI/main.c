@@ -215,6 +215,7 @@ void main(void)
 {
     uint_least8_t estNumber = 0;
     uint_least8_t cnt;
+    static uint32_t stableVdcCount = 0;
 
 //  gMotorVars_init();
 
@@ -611,6 +612,20 @@ void main(void)
         readIOstates();
         modbus_loop(); // enable modbus communication when motor off
         HAL_kickWdog(halHandle); // Reset the watchdog counter
+        if (voltageNoiseDetected)
+        {
+            gMotorVars.Flag_enableSys = false;
+
+            if (spikeCounter > 0)
+            {
+                stableVdcCount = Cputimer1IntCount;
+            }
+            else if (Cputimer1IntCount - stableVdcCount >= (20000UL * 60) && spikeCounter == 0) //1 minute
+                HAL_resetDevice(halHandle);                           // restart the device
+            
+        }
+        else
+            stableVdcCount = Cputimer1IntCount;
     } // end of for(;;) loop
 
 } // end of main() function

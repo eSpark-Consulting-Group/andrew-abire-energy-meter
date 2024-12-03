@@ -5,8 +5,6 @@
         "main.h": "c",
         "hal.h": "c",
         "timer.h": "c",
-        "scidrv.h": "c",
-        "userio.h": "c",
-        "emavg.h": "c"
+        "scidrv.h": "c"
     }
 }
