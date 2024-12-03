@@ -14,11 +14,7 @@
 #pragma DATA_SECTION(brdSeries, "reserved_ram");
 #endif
 
-extern HAL_Obj hal;
-extern HAL_Handle halHandle;
-extern CTRL_Handle ctrlHandle;
 extern unsigned int holdingRegs[]; // function 3 and 16 register array
-extern volatile MOTOR_Vars_t gMotorVars;
 
 bool overcurrentFlag = false;
 bool warncurrentFlag = false;
@@ -103,7 +99,7 @@ void modbus_setup()
 int16_t tank_pressure = 999;
 int16_t spikeCounter = 0;
 float stableInputVoltage = 00.0;
-
+bool voltageNoiseDetected = false;
 
 void checkTransientVdcSpikes()
 {
@@ -129,10 +125,15 @@ void checkTransientVdcSpikes()
             updateCounter = 0;
         }
     }
-    if (spikeCounter >= 5)
+    if (spikeCounter >= 5 && !voltageNoiseDetected)
     {
         spikeCounter = 0;
-        // mcu.shutdown;
+        voltageNoiseDetected = true;
+    }
+    else if (spikeCounter >= 0 && voltageNoiseDetected)
+    {
+        spikeCounter = 0;
+        voltageNoiseDetected = true;
     }
 }
 

@@ -1,6 +1,10 @@
 {
     "files.associations": {
         "modbus_user.h": "c",
-        "modbus_slave.h": "c"
+        "modbus_slave.h": "c",
+        "main.h": "c",
+        "hal.h": "c",
+        "timer.h": "c",
+        "scidrv.h": "c"
     }
 }

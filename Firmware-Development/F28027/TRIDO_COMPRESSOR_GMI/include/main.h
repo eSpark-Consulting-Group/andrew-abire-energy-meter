@@ -257,7 +257,7 @@ typedef struct _MOTOR_Vars_t_
 
 //! \brief The main interrupt service (ISR) routine
 //!
-interrupt void mainISR(void);
+// interrupt void mainISR(void);
 
 void runCurrentReconstruction(void);
 
@@ -381,6 +381,11 @@ _iq getAbsMechAngle(_iq *pAngle_mech_poles, _iq *pAngle_z1_pu, const _iq angle_p
 //! \brief     motor run control for flying start
 //!
 void motor_RunCtrl(CTRL_Handle handle);
+
+extern HAL_Obj hal;
+extern HAL_Handle halHandle;
+extern CTRL_Handle ctrlHandle;
+extern volatile MOTOR_Vars_t gMotorVars;
 
 //@} //defgroup
 #endif // end of _MAIN_H_ definition
