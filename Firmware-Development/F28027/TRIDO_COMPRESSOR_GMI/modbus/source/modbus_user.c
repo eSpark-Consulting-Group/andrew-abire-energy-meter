@@ -359,7 +359,7 @@ void modbus_loop()
         // if tank pressure is higher than stop pressure, motor off
         if ((error.bit.ovperr) || (error.bit.uvperr)
          || (error.bit.settingerr) || (error.bit.snserr)
-         || (error.bit.ocperr || error.bit.ocpwrn) || (error.bit.rpmerr))
+         || (error.bit.ocperr) || (error.bit.rpmerr))
         {
             gMotorVars.Flag_Run_Identify = false;
         }
@@ -510,13 +510,13 @@ void modbus_loop()
 
         mbmsg.dccurrent_out_f = (float)mbmsg.dccurrent_out / 10.0L;
         //if over current, start timer counter
-        if (mbmsg.dccurrent_out_f >= mbmsg.ocp_dcamp_set_f * 1.5L) //1.5 x current set
+        if (mbmsg.dccurrent_out_f >= mbmsg.ocp_dcamp_set_f) //1.5 x current set
         {
-            overcurrentFlag = true; //this will start the timer counter
+            error.bit.ocperr = 1;
         }
-        else if (mbmsg.dccurrent_out_f >= mbmsg.ocp_dcamp_set_f * 1.2L) //1.2 x current set
+        else if (mbmsg.dccurrent_out_f >= mbmsg.ocp_dcamp_set_f*0.8) //1.2 x current set
         {
-            warncurrentFlag = true; //this will start the timer counter
+            error.bit.ocpwrn = 1;
         }
         else
         {
@@ -527,17 +527,6 @@ void modbus_loop()
             error.bit.ocpwrn = 0; //reset over current warning
         }
 
-        //stop motor if 150% over current for 15s
-        if (to.timer15sCount >= 300000UL) //no. of count of 50us
-        {
-            error.bit.ocperr = 1; //this flag cannot be reset once set
-        }
-
-        //warn if 120% over current for 2 mins
-        if (to.timer2minCount >= 2400000UL) //no. of count of 50us
-        {
-            error.bit.ocpwrn = 1;
-        }
 
         holdingRegs[HOLDREG_OUT_BASE_ADDRESS + 4] = error.all;         // Error data                 ->
 

@@ -44,7 +44,7 @@ void currentVdc()
     _iq value = (_iq)ADC_readResult(hal.adcHandle, ADC_ResultNumber_7); // divide by 2^numAdcBits = 2^12
     value = _IQ12mpy(value, hal.voltage_sf);
     _iq rawVdc = _IQmpy(value, _IQ(gUserVar.USER_IQ_FULL_SCALE_VOLTAGE_V / 1000.0));
-    float DcVoltages = _IQtoF(rawVdc) * 10000.0L * VOLTAGE_CORRECTION_FACTOR;
+    float DcVoltages = (_IQtoF(rawVdc) * 10000.0L * VOLTAGE_CORRECTION_FACTOR)/10.0;
 
     if ((DcVoltages * 2) > stableInputVoltage)
         spikeCounter++;
@@ -58,14 +58,6 @@ __interrupt void cpu_timer1_isr(void)
       to.commCount = Cputimer1IntCount;
     }
 
-    if(overcurrentFlag == 1)
-    {
-      to.timer15sCount++;
-    }
-    else if(warncurrentFlag == 1)
-    {
-      to.timer2minCount++;
-    }
 
     if (Cputimer1IntCount - to.hearbeatCount >= 20000UL) // 1 sec = 20000 count * 50us
     {
@@ -83,10 +75,10 @@ __interrupt void cpu_timer1_isr(void)
         to.t15TimeoutFlag = 0;
     }
 
-    if (stableInputVoltage > 0 && Cputimer1IntCount - msTimer1Count >= 1000UL)
+    if ((stableInputVoltage > mbmsg.min_dcv_input/10.0) && (Cputimer1IntCount - msTimer1Count) >= 1000UL) // 50ms
     {
-        msTimer1Count = Cputimer1IntCount;
         currentVdc();
+        msTimer1Count = Cputimer1IntCount;
     }
 
     Cputimer1IntCount++;
