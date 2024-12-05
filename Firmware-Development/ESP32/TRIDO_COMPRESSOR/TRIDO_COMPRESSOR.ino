@@ -1962,11 +1962,11 @@ char page12Func1(char input) {
 
     // font set to 13b
     u8g2.setFont(u8g2_font_t0_13b_mf); // set font
-    
+
     // Error and Status Code
-    xconvert(gStr1, "ERROR CODE:%03d", eep.history[toggleHistory].err.all);
+    xconvert(gStr1, "ERROR COUNT:%02d", __builtin_popcount(eep.history[toggleHistory].err.all));
     u8g2.drawStr(MENU_COL1_XPOS, MENU_TITLE_YPOS, gStr1);
-    xconvert(gStr1, "  STATUS CODE:%03d", eep.history[toggleHistory].status.all);
+    xconvert(gStr1, "  STAT COUNT:%02d", __builtin_popcount(eep.history[toggleHistory].status.all));
     u8g2.drawStr(MENU_COL2_XPOS, MENU_TITLE_YPOS, gStr1);
 
     // font set to 12
@@ -4984,10 +4984,10 @@ void MenuBufferPage12() {
       xconvert(gStr1, "%d/%02d/%02d %02d:%02d:%02d", eep.history[toggleHistory].dnt.year + 2000, eep.history[toggleHistory].dnt.month, eep.history[toggleHistory].dnt.day, eep.history[toggleHistory].dnt.hour, eep.history[toggleHistory].dnt.minute, eep.history[toggleHistory].dnt.second);
       u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE1_YPOS, gStr1);
       //ERROR CODE
-      xconvert(gStr1, "ERROR CODE:%03d", eep.history[toggleHistory].err.all);
+      xconvert(gStr1, "ERROR COUNT:%02d", __builtin_popcount(eep.history[toggleHistory].err.all));
       u8g2.drawStr(120, MENU_LINE1_YPOS, gStr1);
       //STATUS CODE
-      xconvert(gStr1, "STATUS CODE:%03d", eep.history[toggleHistory].status.all);
+      xconvert(gStr1, "STATUS COUNT:%02d", __builtin_popcount(eep.history[toggleHistory].status.all));
       u8g2.drawStr(120, MENU_LINE2_YPOS, gStr1);
       //Record number
       if (numHistoryRecords != 0)
