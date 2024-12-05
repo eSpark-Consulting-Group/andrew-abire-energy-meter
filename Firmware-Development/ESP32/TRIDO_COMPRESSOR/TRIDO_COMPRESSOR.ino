@@ -316,7 +316,7 @@ MENU_T next_menu[] = {
   { MENU_PAGE11, KEY_DOWN, MENU_PAGE12 },
   /******************************************************************************************************/
   { MENU_PAGE12, KEY_ESC, MENU_PAGE1 },
-  //{ MENU_PAGE12, KEY_ENTER, PAGE12_FUNC1 },
+  { MENU_PAGE12, KEY_ENTER, PAGE12_FUNC1 },
   { MENU_PAGE12, KEY_UP, MENU_PAGE11 },
   { MENU_PAGE12, KEY_DOWN, MENU_PAGE13 },
   /******************************************************************************************************/
@@ -370,7 +370,7 @@ MENU_FUNC_T menu_func[] = {
   { PAGE11_FUNC1, page11Func1 },
   /******************************************************************************************************/
   { MENU_PAGE12, 0 },
-  //{PAGE12_FUNC1, page12Func1},
+  { PAGE12_FUNC1, page12Func1},
   /******************************************************************************************************/
   { MENU_PAGE13, 0 },
   //{ PAGE13_FUNC1, page13Func1 },
@@ -1955,8 +1955,53 @@ char page11Func1(char input) {
 // page12Func1 f12
 //-------------------------------------------------------------------
 char page12Func1(char input) {
-  //No Action
+  if (numHistoryRecords != 0)
+  {
+    // Serial.println("Inside Page12func1");
+    u8g2.clearBuffer(); // clear lcd ram buffer
 
+    // font set to 13b
+    u8g2.setFont(u8g2_font_t0_13b_mf); // set font
+    
+    // Error and Status Code
+    xconvert(gStr1, "ERROR CODE:%03d", eep.history[toggleHistory].err.all);
+    u8g2.drawStr(MENU_COL1_XPOS, MENU_TITLE_YPOS, gStr1);
+    xconvert(gStr1, "  STATUS CODE:%03d", eep.history[toggleHistory].status.all);
+    u8g2.drawStr(MENU_COL2_XPOS, MENU_TITLE_YPOS, gStr1);
+
+    // font set to 12
+    u8g2.setFont(u8g2_font_t0_12_mf); // set font
+
+    xconvert(gStr1, "ERR001:%d  ERR002:%d  PSIERR:%d  RPMERR:%d",
+             eep.history[toggleHistory].err.bit.data_range_err,
+             eep.history[toggleHistory].err.bit.vfd_heartbeat_err,
+             eep.history[toggleHistory].err.bit.setting_value_err,
+             eep.history[toggleHistory].err.bit.rpm_set_low_err);
+    u8g2.drawStr(15, MENU_LINE1_YPOS, gStr1);
+
+    xconvert(gStr1, "SNSERR:%d  OVPERR:%d  UVPERR:%d  BATLOW:%d",
+             eep.history[toggleHistory].err.bit.pressure_sensor_error,
+             eep.history[toggleHistory].err.bit.over_voltage_err,
+             eep.history[toggleHistory].err.bit.under_voltage_err,
+             eep.history[toggleHistory].status.bit.low_voltage_warning);
+    u8g2.drawStr(15, MENU_LINE2_YPOS, gStr1);
+
+    xconvert(gStr1, "OCPWRN:%d  OCPERR:%d  DHIGH1:%d  DHIGH2:%d",
+             eep.history[toggleHistory].status.bit.over_current_warning,
+             eep.history[toggleHistory].err.bit.over_current_err,
+             eep.history[toggleHistory].status.bit.single_duty_high_warning,
+             eep.history[toggleHistory].status.bit.average_duty_high_warning);
+    u8g2.drawStr(15, MENU_LINE3_YPOS, gStr1);
+
+    xconvert(gStr1, "REBOOT:%d  ESTERR:%d",
+             eep.history[toggleHistory].status.bit.reboot_pending,
+             eep.history[toggleHistory].err.bit.vfd_est_err);
+    u8g2.drawStr(75, MENU_LINE4_YPOS, gStr1);
+    u8g2.sendBuffer();
+  }
+  if (Key == KEY_ESC) {
+    funcResponse = MENU_FUNC_EXIT_NO_SAVE;
+  }
   if (funcResponse > MENU_FUNC_IDLE) {
     if (funcResponse == MENU_FUNC_EXIT_SAVE) updateEEPROM = true;
     funcResponse = MENU_FUNC_IDLE;
