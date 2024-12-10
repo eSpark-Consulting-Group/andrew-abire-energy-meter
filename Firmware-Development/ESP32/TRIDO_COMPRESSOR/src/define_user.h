@@ -34,8 +34,8 @@
 #define TOTAL_BYTES_IN_A_HISTORY_FAULT_RECORD  10
 
 // COMPRESSOR
-#define NO_OF_RAM_RECORD      48
-#define NO_OF_SAVED_RECORD    48
+#define NO_OF_RAM_RECORD      24
+#define NO_OF_SAVED_RECORD    24
 
 // VFD  
 #define VFD_COMMUNICATION_TIMEOUT              30    //1=100ms

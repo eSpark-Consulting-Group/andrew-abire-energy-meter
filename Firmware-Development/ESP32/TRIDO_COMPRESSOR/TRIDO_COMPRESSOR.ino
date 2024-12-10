@@ -1012,9 +1012,6 @@ void setUserFunc2() {
     case 2:
       SetParaUint(138 /*lcd xpos*/, MENU_LINE3_YPOS, &status.motor.average_duty_alarm_percent.all, 3 /*length*/, 0 /*min*/, 100 /*max*/);
       break;
-    case 3:
-      setCycletimeFunc(MENU_COL2_XPOS, MENU_LINE4_YPOS);
-      break;
   }
 }
 
@@ -1999,6 +1996,9 @@ char page12Func1(char input) {
     u8g2.drawStr(75, MENU_LINE4_YPOS, gStr1);
     u8g2.sendBuffer();
   }
+  else
+    funcResponse = MENU_FUNC_EXIT_NO_SAVE;
+
   if (Key == KEY_ESC) {
     funcResponse = MENU_FUNC_EXIT_NO_SAVE;
   }
@@ -4153,29 +4153,16 @@ void loop() {
       if (status.motor.cycletime_total)
         status.motor.duty = 100 * status.motor.runtime_total / status.motor.cycletime_total;
       // set_cycletime 5 = 0.5hr, 10 = 1hr, 240 = 24hr
-      // cycletime_total = no. of min, set_cycletime = no. of hour x 10
-      if (status.motor.cycletime_total % (status.motor.set_cycletime.all * 6) == 0) {
-        if (eep.motor.saved_record_index >= NO_OF_SAVED_RECORD) {
-          eep.motor.saved_record_index = 0;
-        }
-        // valid set_cycletime = 0.5hr,1hr,1.5hr,2hr,3hr,4hr,6hr,8hr,12hr,1day,2days,3days,4days
-        int record_average = 1;  //normally we average 1 record to get over 24hr records and save to flash memory
-        switch (status.motor.set_cycletime.all) {
-          case 5:                 //0.5hr interval
-            record_average = 48;  //average 48 records to get 24hr records
-            break;
-          case 10:                //1hr interval
-            record_average = 24;  //average 24 records to get 24hr records
-            break;
-          case 15:                //1.5hr interval
-            record_average = 16;  //average 16 records to get 24hr records
-            break;
-          case 20:                //2hr interval
-            record_average = 12;  //average 12 records to get 24hr records
-            break;
-        }
-        // record the duty for every 48 records averaged for 24hr, max 48 records
-        if (status.motor.ram_record_index && (status.motor.ram_record_index % record_average == 0)) {
+        // cycletime_total = no. of min, set_cycletime = no. of hour x 10
+        if (ctrl.onoff == ON && status.motor.cycletime_total % 60 == 0)
+        {
+          if (eep.motor.saved_record_index >= NO_OF_SAVED_RECORD)
+          {
+            eep.motor.saved_record_index = 0;
+          }
+          
+        // record the duty for every hour averaged for 24hr, max 24 records fixed
+        if (status.motor.ram_record_index) {
           u16 avg_record_val = 0;
           for (int i = 0; i < NO_OF_RAM_RECORD; i++) {
             avg_record_val += status.motor.ram_record[i];
@@ -4193,7 +4180,7 @@ void loop() {
           if (startIndexSaved >= NO_OF_RAM_RECORD) {
             status.motor.ram_record_index = 0;
           } else {
-            startIndexSaved += record_average;
+            startIndexSaved += NO_OF_RAM_RECORD;
           }
         }
 
@@ -4436,7 +4423,7 @@ void dispError() {
 void MenuBufferPage1() {
   INT16_T tmpval;
   menuPage = 1;
-  menuTotalItem = 5;
+  menuTotalItem = 4;
   u8g2.clearBuffer();  // clear lcd ram buffer
   //scrollbar & title
   u8g2_draw_scrollbar();
@@ -4536,18 +4523,10 @@ void MenuBufferPage1() {
   xconvert(gStr1, "%03dpsi", status.motor.stop_pressure.all);
   u8g2.drawStr(210, MENU_LINE3_YPOS, gStr1);
   //date and time
-  if (selectedItem != 4) {
-    u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE4_YPOS, "Time On");
-    if (status.motor.cycletime_day) xconvert(gStr1, "%03dd-%02dh", status.motor.cycletime_day, status.motor.cycletime_hour);
-    else if (status.motor.runtime_hour) xconvert(gStr1, "%02dh-%02dm", status.motor.cycletime_hour, status.motor.cycletime_min);
-    else xconvert(gStr1, "%02dm-%02ds", status.motor.cycletime_min, status.motor.cycletime_sec);
-  } else {
-    u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE4_YPOS, "Set Time");
-    if (status.motor.set_cycletime.all < 240)
-      xconvert(gStr1, "%04.1fhour", (double)status.motor.set_cycletime.all / 10.0f);
-    else
-      xconvert(gStr1, "%dday     ", status.motor.set_cycletime.all / 240);
-  }
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE4_YPOS, "Time On");
+  if (status.motor.cycletime_day) xconvert(gStr1, "%03dd-%02dh", status.motor.cycletime_day, status.motor.cycletime_hour);
+  else if (status.motor.runtime_hour) xconvert(gStr1, "%02dh-%02dm", status.motor.cycletime_hour, status.motor.cycletime_min);
+  else xconvert(gStr1, "%02dm-%02ds", status.motor.cycletime_min, status.motor.cycletime_sec);
   u8g2.drawStr(65, MENU_LINE4_YPOS, gStr1);
   //motor duty
   u8g2.drawStr(120, MENU_LINE4_YPOS, "Duty");
@@ -4767,7 +4746,7 @@ void MenuBufferPage5() {
 //----------------------------------------------------------------
 void MenuBufferPage6() {
   menuPage = 6;
-  menuTotalItem = 4;
+  menuTotalItem = 3;
   u8g2.clearBuffer();  // clear lcd ram buffer
   //scrollbar & title
   u8g2_draw_scrollbar();
@@ -4788,13 +4767,6 @@ void MenuBufferPage6() {
   u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE3_YPOS, "7. Average duty alarm");
   xconvert(gStr1, "%03d%%", status.motor.average_duty_alarm_percent);
   u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE3_YPOS, gStr1);
-  //8.
-  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE4_YPOS, "8. Cycle period time");
-  if (status.motor.set_cycletime.all < 240)
-    xconvert(gStr1, "%04.1fhour", (double)status.motor.set_cycletime.all / 10.0f);
-  else
-    xconvert(gStr1, "%dday     ", status.motor.set_cycletime.all / 240);
-  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE4_YPOS, gStr1);
 }
 
 //----------------------------------------------------------------
@@ -4962,6 +4934,27 @@ void MenuBufferPage11() {
 }
 
 //----------------------------------------------------------------
+// Reset Parameters [Triggered by Page 12]
+//----------------------------------------------------------------
+void resetParams()
+{
+  // reset runtime
+  status.motor.runtime_sec = 0;
+  status.motor.runtime_min = 0;
+  status.motor.runtime_hour = 0;
+  status.motor.runtime_day = 0;
+  status.motor.runtime_total = 0;
+  // reset cycletime
+  status.motor.cycletime_sec = 0;
+  status.motor.cycletime_min = 0;
+  status.motor.cycletime_hour = 0;
+  status.motor.cycletime_day = 0;
+  status.motor.cycletime_total = 0;
+  // reset duty which is update on LCD every 1 min
+  status.motor.duty = 0;
+}
+
+//----------------------------------------------------------------
 //Page 12 [HISTORY FAULT RECORD] p12
 //----------------------------------------------------------------
 void MenuBufferPage12() {
@@ -5019,6 +5012,7 @@ void MenuBufferPage12() {
       faultRecord = false;
       toggleHistory = 0;
       updateEEPROM = true;  //save setting
+      resetParams();
       strcpy(userMsg[1], "FAULT HISTORY RESET!");
     } else {
       strcpy(userMsg[0], "CANNOT RESET HISTORY:" );
@@ -5027,7 +5021,6 @@ void MenuBufferPage12() {
     }
   }
 }
-
 //----------------------------------------------------------------
 //Page 13 [SYSTEM INFO] p13
 //----------------------------------------------------------------
