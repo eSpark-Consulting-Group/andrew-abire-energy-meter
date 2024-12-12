@@ -68,6 +68,7 @@ u32 espResetCounter = 0;
 
 //DIO
 IO_T io;
+#define ACTIVE_IO_BITS 8 // Active bits we want to count
 
 // EEPROM
 EEPROM_T eep;
@@ -3630,15 +3631,11 @@ ModbusMessage FC01(ModbusMessage request) {
   }
 
   coil_addr = output_address - scada_setting.coil_addr.all;
+  mycoils.set(0, ACTIVE_IO_BITS, (uint8_t *)&io.all);
 
   // Are the parameters valid?
   if (coil_addr < mycoils.coils()) {
-    // Looks like it. Get the requested coils from our storage
-    if (coil_addr == 0) {
-      mycoils.set(0, ctrl.onoff);
-    } else if (coil_addr == 1) {
-      //no variable assigned, the value is itself = mycoils[1], read should be always 0 when FC05 is not active
-    }
+    // Get the requested coils from our storage
     vector<uint8_t> coilset = mycoils.slice(coil_addr, output_value);
     // Set up response according to the specs: serverID, function code, number of bytes to follow, packed coils
     response.add(request.getServerID(), request.getFunctionCode(), (uint8_t)coilset.size(), coilset);
@@ -4004,6 +4001,7 @@ void checkTime() {
 // loop()
 //=========================================================================================================================================================================
 void loop() {
+
   // controller startup reset
   if (startUpReset == true) {
     if (ctrl.reset == true) {

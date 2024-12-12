@@ -145,7 +145,7 @@ typedef struct
   UINT16_T discrete_addr;     //Set the Discrete Input Start Address
   UINT16_T inputreg_addr;     //Set the Input Register Start Address
   UINT16_T holdreg_addr;      //Set the Holding Register Start Address
-  u16 max_coil = 2;           //For calculation of maxmimum user defined address
+  u16 max_coil = 8;           //For calculation of maxmimum user defined address
   u16 max_discrete = 0;       //For calculation of maxmimum user defined address
   u16 max_inputreg = 0;       //For calculation of maxmimum user defined address
   u16 max_holdreg = 127;      //For calculation of maxmimum user defined address
