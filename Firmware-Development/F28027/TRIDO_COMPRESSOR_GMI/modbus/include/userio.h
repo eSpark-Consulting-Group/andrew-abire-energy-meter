@@ -63,6 +63,7 @@ union IO_T
 
 void InitGpios(void);
 void readIOstates(void);
+void setDigitalOutput(void);
 
 extern GPIO_Handle myGpio;
 

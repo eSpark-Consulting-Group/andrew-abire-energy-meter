@@ -109,6 +109,14 @@ void readIOstates()
     }
 }
 
+void setDigitalOutput(void)
+{
+    mbmsg.io.bit.DO1 ? DO1_OPEN() : DO1_CLOSE();
+    mbmsg.io.bit.DO2 ? DO2_OPEN() : DO2_CLOSE();
+    mbmsg.io.bit.DO3 ? DO3_OPEN() : DO3_CLOSE();
+    mbmsg.io.bit.DO4 ? DO4_OPEN() : DO4_CLOSE();
+}
+
 //===========================================================================
 // No more.
 //===========================================================================

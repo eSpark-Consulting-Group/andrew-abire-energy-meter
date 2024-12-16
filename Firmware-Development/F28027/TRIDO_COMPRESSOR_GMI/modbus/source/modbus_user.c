@@ -137,10 +137,31 @@ void checkTransientVdcSpikes()
     }
 }
 
+bool doCompareAndCopy(struct IO_BIT_T *state1, const struct IO_BIT_T *state2)
+{
+    unsigned char DO_MASK = 0xF0;
+
+    unsigned char s1 = *((unsigned char *)state1);
+    unsigned char s2 = *((unsigned char *)state2);
+
+    if ((s1 & DO_MASK) != (s2 & DO_MASK))
+    {
+        // Copy the DO bits from state2 to state1
+        unsigned char doBits = s2 & DO_MASK;
+        state1->DO1 = (doBits & (1 << 4)) >> 4;
+        state1->DO2 = (doBits & (1 << 5)) >> 5;
+        state1->DO3 = (doBits & (1 << 6)) >> 6;
+        state1->DO4 = (doBits & (1 << 7)) >> 7;
+        return false; // Indicates they were not equal
+    }
+    return true; // Indicates equality
+}
+
 void modbus_loop()
 {
     checkTransientVdcSpikes();
     _iq krpm_ref = 0;
+    static union IO_T getGpioState;
 
     holdingRegs[HOLDREG_OUT_BASE_ADDRESS + 6] = mbmsg.heartbeat_out;  // controller heartbeat       ->
 
@@ -290,12 +311,13 @@ void modbus_loop()
     {
         mbmsg.zero_psi_offset = 5; // set to default 0 psi offset
     }
-    mbmsg.max_psi_sensor = holdingRegs[HOLDREG_IN_BASE_ADDRESS + 12];            // max sensor psi set                     <-
-    mbmsg.zero_psi_sensor_volt = holdingRegs[HOLDREG_IN_BASE_ADDRESS + 13];      // zero psi sensor output volt set        <-
-    mbmsg.max_psi_sensor_volt = holdingRegs[HOLDREG_IN_BASE_ADDRESS + 14];       // max psi sensor output volt set         <-
-    mbmsg.communication_fail_action = holdingRegs[HOLDREG_IN_BASE_ADDRESS + 15]; // Communication fail action              <-
-    mbmsg.motor_model.all = holdingRegs[HOLDREG_IN_BASE_ADDRESS + 16];             // Motor model                          <-
-    mbmsg.reset = holdingRegs[HOLDREG_IN_BASE_ADDRESS + 17];                       // Controller reset                     <-
+    mbmsg.max_psi_sensor = holdingRegs[HOLDREG_IN_BASE_ADDRESS + 12];              // max sensor psi set                     <-
+    mbmsg.zero_psi_sensor_volt = holdingRegs[HOLDREG_IN_BASE_ADDRESS + 13];        // zero psi sensor output volt set        <-
+    mbmsg.max_psi_sensor_volt = holdingRegs[HOLDREG_IN_BASE_ADDRESS + 14];         // max psi sensor output volt set         <-
+    mbmsg.communication_fail_action = holdingRegs[HOLDREG_IN_BASE_ADDRESS + 15];   // Communication fail action              <-
+    mbmsg.motor_model.all = holdingRegs[HOLDREG_IN_BASE_ADDRESS + 16];             // Motor model                            <-
+    mbmsg.reset = holdingRegs[HOLDREG_IN_BASE_ADDRESS + 17];                       // Controller reset                       <-
+    getGpioState.all = holdingRegs[HOLDREG_IN_BASE_ADDRESS + 18];                  // Digital output set by modbus master    <-
 
     sensor.max_psi_sensor = mbmsg.max_psi_sensor;
     sensor.zero_psi_adc_reading = (uint16_t)((float)mbmsg.zero_psi_sensor_volt / 1000.0L * 400.0L);
@@ -304,6 +326,11 @@ void modbus_loop()
     sensor.err_psi_adc_reading_high = (uint16_t)((float)sensor.max_psi_adc_reading + ((float)sensor.zero_psi_adc_reading - (float)sensor.err_psi_adc_reading_low));
     sensor.max_start_psi = sensor.max_psi_sensor - 3;
     sensor.max_stop_psi = sensor.max_psi_sensor;
+
+    if (!doCompareAndCopy(&getGpioState.bit, &mbmsg.io.bit))
+    {
+        setDigitalOutput();
+    }
 
     // if heartbeat increment is received from ESP32 normally, communication is normal
     if (mbmsg.heartbeat_in != mbmsg.prev_heartbeat_in)
