@@ -2859,6 +2859,8 @@ void taskMbClient(void *parameter) {
         wdat[index++] = ctrl.motor_model.all;
         //reg 17 Controller reset
         wdat[index++] = ctrl.reset;
+        //reg 18 Digital output set by modbus master
+        wdat[index++] = ctrl.gpio.all;
         err = mbClient.addRequest(FC16_MOSI /*token*/, 1 /*server_id*/, WRITE_MULT_REGISTERS /*FC*/, 0 /*reg*/, index /*words*/, index * 2 /*bytes*/, wdat);
         //####################################
         //REMEMBER to change the wdat[size]!
@@ -3631,7 +3633,8 @@ ModbusMessage FC01(ModbusMessage request) {
   }
 
   coil_addr = output_address - scada_setting.coil_addr.all;
-  mycoils.set(0, ACTIVE_IO_BITS, (uint8_t *)&io.all);
+  mycoils.set(0, ctrl.onoff);
+  mycoils.set(1, ACTIVE_IO_BITS, (uint8_t *)&ctrl.gpio.all);
 
   // Are the parameters valid?
   if (coil_addr < mycoils.coils()) {
@@ -3681,48 +3684,47 @@ ModbusMessage FC05(ModbusMessage request) {
   }
 
   coil_addr = output_address - scada_setting.coil_addr.all;
-
   //scada_setting.max_coil = 2; //see type_user.h
   //scada_max_coil_addr = scada_setting.coil_addr.all + scada_setting.max_coil - 1;
 
   // Is the coil address valid?
-  if (coil_addr < mycoils.coils()) {
+  if (coil_addr < mycoils.coils() && !(coil_addr >= 1 && coil_addr <= 4)) {
     if (output_value == 0x0000 || output_value == 0xFF00) {
-      if (output_value == 0x0000) {
-        value = false;
-      } else if (output_value == 0xFF00) {
-        value = true;
-      }
-      //Check if any change is needed
-      if (mycoils[coil_addr] == value)  // Is the ON/OFF value correct?
-      {
-        strcpy(userMsg[0], "REMOTE CONTROL:");
-        strcpy(userMsg[1], "SET COILS!");
-        strcpy(userMsg[2], "RESULT: NO ACTION!");
-        response = ECHO_RESPONSE;
+        value = (output_value == 0xFF00);
+        if (mycoils[coil_addr] == value) // Is the ON/OFF value correct?
+        {
+          strcpy(userMsg[0], "REMOTE CONTROL:");
+          strcpy(userMsg[1], "SET COILS!");
+          strcpy(userMsg[2], "RESULT: NO ACTION!");
+          response = ECHO_RESPONSE;
       } else {
         // set the coil value
         if (mycoils.set(coil_addr, value)) {
           // Data handling
-          if (coil_addr == 0) {
-            if (mycoils[0] == true)
-              ctrl.onoff = ON;
-            else if (mycoils[0] == false)
-              ctrl.onoff = OFF;
-            updateEEPROM = true;
+          if (coil_addr == 0)
+          {
+            ctrl.onoff = value;
             strcpy(userMsg[0], "REMOTE CONTROL:");
             strcpy(userMsg[1], "SYSTEM ON/OFF!");
             strcpy(userMsg[2], "RESULT: APPLIED!");
-          } else if (coil_addr == 1) {
-            if (mycoils[1] == true) {
-              totalturns = 0;
-              eep.totalturns.all = 0;
-              updateEEPROM = true;
-              strcpy(userMsg[0], "REMOTE CONTROL:");
-              strcpy(userMsg[1], "DAY TURN RESET!");
-              strcpy(userMsg[2], "RESULT: APPLIED!");
-              mycoils.set(1, false);
-            }
+          }
+          else /// if (coil_addr >= 5 && coil_addr <= 7 )
+          {
+            ctrl.gpio.all = io.all;
+            // value ? ctrl.gpio.all |= (1 <<coil_addr) : ctrl.gpio.all &= ~(1 <<coil_addr);
+            ctrl.gpio.all ^= (1 <<coil_addr-1);
+            strcpy(userMsg[0], "REMOTE CONTROL:");
+            strcpy(userMsg[1], "DO SET/RESET!");
+            strcpy(userMsg[2], "RESULT: APPLIED!");
+            Serial.print("ctrl.gpio.all: ");
+            Serial.println(ctrl.gpio.all,BIN);
+
+            /* test updated values (esp32 to esp32)
+            io.bit.DO1 = ctrl.gpio.bit.DO1;
+            io.bit.DO2 = ctrl.gpio.bit.DO2;
+            io.bit.DO3 = ctrl.gpio.bit.DO3;
+            io.bit.DO4 = ctrl.gpio.bit.DO4;
+            */
           }
           // All fine, coil was set.
           response = ECHO_RESPONSE;

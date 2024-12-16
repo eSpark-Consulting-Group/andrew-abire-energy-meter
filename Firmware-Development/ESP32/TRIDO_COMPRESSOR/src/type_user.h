@@ -49,6 +49,25 @@ typedef struct
   u16 second;
 } DATETIME_T;
 
+struct IO_BIT_T
+{
+  bool DI1 : 1;
+  bool DI2 : 1;
+  bool DI3 : 1;
+  bool DI4 : 1;
+  bool DO1 : 1;
+  bool DO2 : 1;
+  bool DO3 : 1;
+  bool DO4 : 1;
+  bool rsvd : 8;
+} __attribute__((packed));
+
+union IO_T
+{
+  struct IO_BIT_T bit;
+  uint16_t all;
+};
+
 // Control Parameters Send To VFD
 typedef struct
 {
@@ -69,7 +88,8 @@ typedef struct
   double max_dcv_input_f = 32.0;    //
   double slow_down_dcv_f = 23.0;    //
   UINT16_T ocp_dcamp;        //Over current ratio in DC amp of full load currrent
-  double ocp_dcamp_f = 8.0; 
+  double ocp_dcamp_f = 8.0;
+  IO_T gpio;
 } CONTROL_T;
 
 // Compressor
@@ -145,7 +165,7 @@ typedef struct
   UINT16_T discrete_addr;     //Set the Discrete Input Start Address
   UINT16_T inputreg_addr;     //Set the Input Register Start Address
   UINT16_T holdreg_addr;      //Set the Holding Register Start Address
-  u16 max_coil = 8;           //For calculation of maxmimum user defined address
+  u16 max_coil = 9;           //For calculation of maxmimum user defined address
   u16 max_discrete = 0;       //For calculation of maxmimum user defined address
   u16 max_inputreg = 0;       //For calculation of maxmimum user defined address
   u16 max_holdreg = 127;      //For calculation of maxmimum user defined address
@@ -230,25 +250,6 @@ union SYSTEM_STATUS_T
   struct STATUS_BIT_T bit;
   u16 all;
   u8 byte[2];
-};
-
-struct IO_BIT_T
-{
-  bool DI1:1;
-  bool DI2:1;
-  bool DI3:1;
-  bool DI4:1;
-  bool DO1:1;
-  bool DO2:1;
-  bool DO3:1;
-  bool DO4:1;
-  bool rsvd:8;
-};
-
-union IO_T
-{
-  struct IO_BIT_T bit;
-  uint16_t all;
 };
 
 typedef struct
