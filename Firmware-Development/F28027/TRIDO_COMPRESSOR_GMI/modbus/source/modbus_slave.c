@@ -2,7 +2,6 @@
 #include "modbus_slave.h"
 #include "main.h"
 #include "scidrv.h"
-#include "math.h"
 #include "gpio.h"
 #include "timer.h"
 
@@ -39,17 +38,6 @@ enum
     PARAMETER_COUNT_ERROR = 0xE6,
 };
 
-void currentVdc()
-{
-    _iq value = (_iq)ADC_readResult(hal.adcHandle, ADC_ResultNumber_7); // divide by 2^numAdcBits = 2^12
-    value = _IQ12mpy(value, hal.voltage_sf);
-    _iq rawVdc = _IQmpy(value, _IQ(gUserVar.USER_IQ_FULL_SCALE_VOLTAGE_V / 1000.0));
-    float DcVoltages = (_IQtoF(rawVdc) * 10000.0L * VOLTAGE_CORRECTION_FACTOR)/10.0;
-
-    if ((DcVoltages * 2) > stableInputVoltage)
-        spikeCounter++;
-}
-
 __interrupt void cpu_timer1_isr(void)
 {
     if(Cputimer1IntCount - to.commCount >= 60000) // 1 sec = 20000 count * 50us
@@ -73,12 +61,6 @@ __interrupt void cpu_timer1_isr(void)
     else
     {
         to.t15TimeoutFlag = 0;
-    }
-
-    if ((stableInputVoltage > mbmsg.min_dcv_input/10.0) && (Cputimer1IntCount - msTimer1Count) >= 1000UL) // 50ms
-    {
-        currentVdc();
-        msTimer1Count = Cputimer1IntCount;
     }
 
     Cputimer1IntCount++;

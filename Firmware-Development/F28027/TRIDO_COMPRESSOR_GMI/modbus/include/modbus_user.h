@@ -164,9 +164,6 @@ typedef struct
 } TIMEOUT_T;
 
 extern TIMEOUT_T to;
-extern int16_t spikeCounter;
-extern float stableInputVoltage;
-extern bool voltageNoiseDetected;
 
 void modbus_setup(void);
 void modbus_loop(void);
