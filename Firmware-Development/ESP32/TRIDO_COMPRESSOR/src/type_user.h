@@ -100,11 +100,11 @@ typedef struct
   UINT16_T stop_pressure;      //Stop pressure
   u32 runtime_total = 0;     //Total on time in terms of number of cycle time
   u32 cycletime_total = 0;   //Total period of in terms of number of ycle time
-  u16 runtime_day = 0;       //Total runtime in days 
+  UINT16_T runtime_day{.all = 0};  // Total runtime in days
   u8 runtime_hour = 0;       //Total runtime in hours
   u8 runtime_min = 0;        //Total runtime in mins
   u8 runtime_sec = 0;        //Total runtime in secs
-  u16 cycletime_day = 0;     //Total cycletime in days
+  UINT16_T cycletime_day{.all = 0}; // Total cycletime in days
   u8 cycletime_hour = 0;     //Total cycletime hours in days
   u8 cycletime_min = 0;      //Total cycletime mins in days
   u8 cycletime_sec = 0;      //Total cycletime secs in days

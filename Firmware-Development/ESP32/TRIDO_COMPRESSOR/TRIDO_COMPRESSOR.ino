@@ -36,9 +36,9 @@ j:\Projects\Trido\Townes Controller\Software\2024.06.03\ESP32\TRIDO_COMPRESSOR\s
 #include "src\eModbus\src\ModbusServerRTU.h"
 #include "src\eModbus\src\CoilData.h"
 
-const char POWERCTL_VERSION_STRING[] = "2024.12.04";
+const char POWERCTL_VERSION_STRING[] = "2024.12.26";
 //const char HARDWARE_VERSION_STRING[] = "YH_PB01_V5.001";
-const char SYSTEMCTL_VERSION_STRING[] = "2024.12.04";
+const char SYSTEMCTL_VERSION_STRING[] = "2024.12.26";
 
 //<! Set to 0 for manufacturing
 #define DEBUG_MODBUS_ERROR 0
@@ -1031,13 +1031,13 @@ void setUserFunc3() {
         status.motor.runtime_sec = 0;
         status.motor.runtime_min = 0;
         status.motor.runtime_hour = 0;
-        status.motor.runtime_day = 0;
+        status.motor.runtime_day.all = 0;
         status.motor.runtime_total = 0;
         //reset cycletime
         status.motor.cycletime_sec = 0;
         status.motor.cycletime_min = 0;
         status.motor.cycletime_hour = 0;
-        status.motor.cycletime_day = 0;
+        status.motor.cycletime_day.all = 0;
         status.motor.cycletime_total = 0;
         //reset duty which is update on LCD every 1 min
         status.motor.duty = 0;
@@ -2097,7 +2097,7 @@ void prepareWrbuf(unsigned int *buf, u16 *bytecount) {
   buf[index++] = eep.comport.stopbits;
   buf[index++] = eep.comport.parity;
 
-  // Compressor = 31 bytes
+  // Compressor = 41 bytes
   buf[index++] = eep.ctrl.min_dcv_input.byte[0];
   buf[index++] = eep.ctrl.min_dcv_input.byte[1];
   buf[index++] = eep.ctrl.max_dcv_input.byte[0];
@@ -2112,6 +2112,16 @@ void prepareWrbuf(unsigned int *buf, u16 *bytecount) {
   buf[index++] = eep.motor.stop_pressure.byte[1];
   buf[index++] = eep.motor.set_cycletime.byte[0];
   buf[index++] = eep.motor.set_cycletime.byte[1];
+  buf[index++] = eep.motor.runtime_sec;
+  buf[index++] = eep.motor.runtime_min;
+  buf[index++] = eep.motor.runtime_hour;
+  buf[index++] = eep.motor.runtime_day.byte[0];
+  buf[index++] = eep.motor.runtime_day.byte[1];
+  buf[index++] = eep.motor.cycletime_sec;
+  buf[index++] = eep.motor.cycletime_min;
+  buf[index++] = eep.motor.cycletime_hour;
+  buf[index++] = eep.motor.cycletime_day.byte[0];
+  buf[index++] = eep.motor.cycletime_day.byte[1];
   buf[index++] = eep.motor.sensor_psi_offset;
   buf[index++] = eep.motor.single_duty_alarm_percent.byte[0];
   buf[index++] = eep.motor.single_duty_alarm_percent.byte[1];
@@ -2189,8 +2199,8 @@ void readEEPROMdata(unsigned int *buf, u16 *byteread) {
     buf[index++] = EEPROM.read(addr++);
   }
 
-  // Compressor = 31 bytes
-  for (int i = 0; i < 31; i++) {
+  // Compressor = 41 bytes
+  for (int i = 0; i < 41; i++) {
     buf[index++] = EEPROM.read(addr++);
   }
 
@@ -2399,7 +2409,7 @@ bool restoreEEPROMdata() {
   eep.comport.stopbits = rbuf[index++];
   eep.comport.parity = rbuf[index++];
 
-  // Compressor = 31 bytes
+  // Compressor = 41 bytes
   eep.ctrl.min_dcv_input.byte[0] = rbuf[index++];
   eep.ctrl.min_dcv_input.byte[1] = rbuf[index++];
   eep.ctrl.max_dcv_input.byte[0] = rbuf[index++];
@@ -2414,6 +2424,16 @@ bool restoreEEPROMdata() {
   eep.motor.stop_pressure.byte[1] = rbuf[index++];
   eep.motor.set_cycletime.byte[0] = rbuf[index++];
   eep.motor.set_cycletime.byte[1] = rbuf[index++];
+  eep.motor.runtime_sec = rbuf[index++];
+  eep.motor.runtime_min = rbuf[index++];
+  eep.motor.runtime_hour = rbuf[index++];
+  eep.motor.runtime_day.byte[0] = rbuf[index++];
+  eep.motor.runtime_day.byte[1] = rbuf[index++];
+  eep.motor.cycletime_sec = rbuf[index++];
+  eep.motor.cycletime_min = rbuf[index++];
+  eep.motor.cycletime_hour = rbuf[index++];
+  eep.motor.cycletime_day.byte[0] = rbuf[index++];
+  eep.motor.cycletime_day.byte[1] = rbuf[index++];
   eep.motor.sensor_psi_offset = rbuf[index++];
   eep.motor.single_duty_alarm_percent.byte[0] = rbuf[index++];
   eep.motor.single_duty_alarm_percent.byte[1] = rbuf[index++];
@@ -2500,6 +2520,7 @@ bool restoreEEPROMdata() {
   // Compressor
   status.motor = eep.motor;
   status.motor.set_cycletime_f = (double)status.motor.set_cycletime.all / 10.0f;
+  status.motor.cycletime_total = status.motor.cycletime_sec;
 
 #if DEBUG_WRITEFLASH_FUNCTION
   Serial.println("restoreEEPROM: finished");  //Monitor via serial port
@@ -3147,7 +3168,7 @@ ModbusMessage FC03(ModbusMessage request) {
         }
         if (reg_address == scada_setting.holdreg_addr.all + 15) {
           if (reg_count <= words - 1) {
-            response.add((u16)status.motor.cycletime_day);
+            response.add((u16)status.motor.cycletime_day.all);
             reg_address++;
             reg_count++;
           } else
@@ -3179,7 +3200,7 @@ ModbusMessage FC03(ModbusMessage request) {
         }
         if (reg_address == scada_setting.holdreg_addr.all + 19) {
           if (reg_count <= words - 1) {
-            response.add((u16)status.motor.runtime_day);
+            response.add((u16)status.motor.runtime_day.all);
             reg_address++;
             reg_count++;
           } else
@@ -4143,11 +4164,11 @@ void loop() {
       }
       //day
       if (status.motor.runtime_hour >= 24) {
-        status.motor.runtime_day++;
+        status.motor.runtime_day.all++;
         status.motor.runtime_hour = 0;
       }
       if (status.motor.cycletime_hour >= 24) {
-        status.motor.cycletime_day++;
+        status.motor.cycletime_day.all++;
         status.motor.cycletime_hour = 0;
       }
       // Calculate duty cycle, 0 case is ignored
@@ -4199,13 +4220,13 @@ void loop() {
         // status.motor.runtime_sec = 0;
         // status.motor.runtime_min = 0;
         // status.motor.runtime_hour = 0;
-        // status.motor.runtime_day = 0;
+        // status.motor.runtime_day.all = 0;
         // status.motor.runtime_total = 0;
         // //reset cycletime
         // status.motor.cycletime_sec = 0;
         // status.motor.cycletime_min = 0;
         // status.motor.cycletime_hour = 0;
-        // status.motor.cycletime_day = 0;
+        // status.motor.cycletime_day.all = 0;
         // status.motor.cycletime_total = 0;
         // //reset duty which is update on LCD every 1 min
         // status.motor.duty = 0;
@@ -4510,7 +4531,7 @@ void MenuBufferPage1() {
   u8g2.drawStr(65, MENU_LINE2_YPOS, gStr1);
   //run time
   u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE3_YPOS, "Run Time");
-  if (status.motor.runtime_day) xconvert(gStr1, "%03dd-%02dh", status.motor.runtime_day, status.motor.runtime_hour);
+  if (status.motor.runtime_day.all) xconvert(gStr1, "%03dd-%02dh", status.motor.runtime_day.all, status.motor.runtime_hour);
   else if (status.motor.runtime_hour) xconvert(gStr1, "%02dh-%02dm", status.motor.runtime_hour, status.motor.runtime_min);
   else xconvert(gStr1, "%02dm-%02ds", status.motor.runtime_min, status.motor.runtime_sec);
   u8g2.drawStr(65, MENU_LINE3_YPOS, gStr1);
@@ -4524,7 +4545,7 @@ void MenuBufferPage1() {
   u8g2.drawStr(210, MENU_LINE3_YPOS, gStr1);
   //date and time
   u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE4_YPOS, "Time On");
-  if (status.motor.cycletime_day) xconvert(gStr1, "%03dd-%02dh", status.motor.cycletime_day, status.motor.cycletime_hour);
+  if (status.motor.cycletime_day.all) xconvert(gStr1, "%03dd-%02dh", status.motor.cycletime_day.all, status.motor.cycletime_hour);
   else if (status.motor.runtime_hour) xconvert(gStr1, "%02dh-%02dm", status.motor.cycletime_hour, status.motor.cycletime_min);
   else xconvert(gStr1, "%02dm-%02ds", status.motor.cycletime_min, status.motor.cycletime_sec);
   u8g2.drawStr(65, MENU_LINE4_YPOS, gStr1);
@@ -4942,13 +4963,13 @@ void resetParams()
   status.motor.runtime_sec = 0;
   status.motor.runtime_min = 0;
   status.motor.runtime_hour = 0;
-  status.motor.runtime_day = 0;
+  status.motor.runtime_day.all = 0;
   status.motor.runtime_total = 0;
   // reset cycletime
   status.motor.cycletime_sec = 0;
   status.motor.cycletime_min = 0;
   status.motor.cycletime_hour = 0;
-  status.motor.cycletime_day = 0;
+  status.motor.cycletime_day.all = 0;
   status.motor.cycletime_total = 0;
   // reset duty which is update on LCD every 1 min
   status.motor.duty = 0;
