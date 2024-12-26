@@ -4003,7 +4003,7 @@ void checkTime() {
 // loop()
 //=========================================================================================================================================================================
 void loop() {
-
+  static bool savedToEeprom = true;
   // controller startup reset
   if (startUpReset == true) {
     if (ctrl.reset == true) {
@@ -4139,6 +4139,7 @@ void loop() {
       if (status.motor.cycletime_min >= 60) {
         status.motor.cycletime_hour++;
         status.motor.cycletime_min = 0;
+        savedToEeprom = false;
       }
       //day
       if (status.motor.runtime_hour >= 24) {
@@ -4154,15 +4155,15 @@ void loop() {
         status.motor.duty = 100 * status.motor.runtime_total / status.motor.cycletime_total;
       // set_cycletime 5 = 0.5hr, 10 = 1hr, 240 = 24hr
         // cycletime_total = no. of min, set_cycletime = no. of hour x 10
-        if (ctrl.onoff == ON && status.motor.cycletime_total % 60 == 0)
+      if (ctrl.onoff == ON && status.motor.cycletime_total > 0 && status.motor.cycletime_total % 60 == 0 && !savedToEeprom)
+      {
+        savedToEeprom = true;
+        if (eep.motor.saved_record_index >= NO_OF_SAVED_RECORD)
         {
-          if (eep.motor.saved_record_index >= NO_OF_SAVED_RECORD)
-          {
-            eep.motor.saved_record_index = 0;
-          }
+          eep.motor.saved_record_index = 0;
+        }
           
         // record the duty for every hour averaged for 24hr, max 24 records fixed
-        if (status.motor.ram_record_index) {
           u16 avg_record_val = 0;
           for (int i = 0; i < NO_OF_RAM_RECORD; i++) {
             avg_record_val += status.motor.ram_record[i];
@@ -4182,7 +4183,6 @@ void loop() {
           } else {
             startIndexSaved += NO_OF_RAM_RECORD;
           }
-        }
 
         // record the duty for every cycletime set, max 48 records,
         // minimum interval = set hr, i.e. minimum 1 day records at 1/2 hr interval
