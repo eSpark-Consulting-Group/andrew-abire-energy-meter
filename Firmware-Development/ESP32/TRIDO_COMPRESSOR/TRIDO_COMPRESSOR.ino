@@ -221,7 +221,7 @@ u8 menuPage = 1;
 u8 menuTotalItem = 0;
 u8 toggleHistory = 0;
 u8 numHistoryRecords = 0;
-char errorDisplayCount = 0;
+u16 errorDisplayCount = 0;
 char warnDisplayCount = 0;
 u16 screenSaverCount = 0;
 char userMsg[3][52] = {
@@ -2963,6 +2963,7 @@ void handleData(ModbusMessage msg, u32 token) {
       syserr.bit.rpm_set_low_err = bitRead(rdata[index], 6);  //rpm set low err
       syserr.bit.setting_value_err = bitRead(rdata[index], 7);
       syserr.bit.vfd_est_err = bitRead(rdata[index], 8);  //FOC estimator error
+      syserr.bit.tvdc_noise_error = bitRead(rdata[index], 9);  //vdc noise error
       index++;
 
       //reg 23 Motor coil current in      <-
@@ -4358,44 +4359,48 @@ void LcdUpdate() {
 
 void dispError() {
   //error message
-  if (syserr.all != 0x00000000) {
+  if (syserr.all != 0) {
     u8g2.setDrawColor(TEXT_COLOR_INVERTED);
     if (bitRead(syserr.all, errorDisplayCount)) {
-      switch (errorDisplayCount) {
-        case 0:
-          if (!syserr.bit.vfd_heartbeat_err)
-            strcpy(errorMsg, "DCLERR");  //DC input over-voltage error
-          break;
-        case 1:
-          if (!syserr.bit.vfd_heartbeat_err)
-            strcpy(errorMsg, "DCHERR");  //DC input under-voltage error
-          break;
-        case 2:
-          if (!syserr.bit.vfd_heartbeat_err)
-            strcpy(errorMsg, "OCPERR");  //Motor over current error
-          break;
-        case 3:
-          strcpy(errorMsg, "PSIERR");  //wrong psi settings set by user
-          break;
-        case 4:
-          strcpy(errorMsg, "ERR001");  //invalid data range read from motor controller
-          break;
-        case 5:
-          strcpy(errorMsg, "ERR002");  //HMI lost communication with motor controller
-          break;
-        case 6:
-          if (!syserr.bit.vfd_heartbeat_err)
-            strcpy(errorMsg, "ESTERR");  //FOC estimator control error, reason maybe running current over hardware limit, locked rotor etc.
-          break;
-        case 7:
-          if (!syserr.bit.vfd_heartbeat_err)
-            strcpy(errorMsg, "RPMERR");  //wrong RPM setting set by user
-          break;
-        case 8:
-          if (!syserr.bit.vfd_heartbeat_err)
-            strcpy(errorMsg, "SNSERR");  //Pressure sensor error
-          errorDisplayCount = 0;
-          break;
+      switch (errorDisplayCount)
+      {
+      case 0:
+        if (!syserr.bit.vfd_heartbeat_err)
+          strcpy(errorMsg, "DCLERR");  //DC input over-voltage error
+        break;
+      case 1:
+        if (!syserr.bit.vfd_heartbeat_err)
+          strcpy(errorMsg, "DCHERR");  //DC input under-voltage error
+        break;
+      case 2:
+        if (!syserr.bit.vfd_heartbeat_err)
+          strcpy(errorMsg, "OCPERR");  //Motor over current error
+        break;
+      case 3:
+        strcpy(errorMsg, "PSIERR");  //wrong psi settings set by user
+        break;
+      case 4:
+        strcpy(errorMsg, "ERR001");  //invalid data range read from motor controller
+        break;
+      case 5:
+        strcpy(errorMsg, "ERR002");  //HMI lost communication with motor controller
+        break;
+      case 6:
+        if (!syserr.bit.vfd_heartbeat_err)
+          strcpy(errorMsg, "ESTERR");  //FOC estimator control error, reason maybe running current over hardware limit, locked rotor etc.
+        break;
+      case 7:
+        if (!syserr.bit.vfd_heartbeat_err)
+          strcpy(errorMsg, "RPMERR");  //wrong RPM setting set by user
+        break;
+      case 8:
+        if (!syserr.bit.vfd_heartbeat_err)
+          strcpy(errorMsg, "SNSERR");  //Pressure sensor error
+        errorDisplayCount = 0;
+        break;
+      case 9:
+        strcpy(errorMsg, "TVNERR"); // Transient VDC Noise error
+        break;
       }
     }
     u8g2.drawStr(210, MENU_LINE4_YPOS, errorMsg);

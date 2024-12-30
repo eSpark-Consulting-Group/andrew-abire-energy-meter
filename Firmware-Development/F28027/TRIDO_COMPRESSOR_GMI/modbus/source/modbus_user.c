@@ -129,11 +129,13 @@ void checkTransientVdcSpikes()
     {
         spikeCounter = 0;
         voltageNoiseDetected = true;
+        error.bit.tvnerr = 1; // transient voltage noise error
     }
     else if (spikeCounter >= 0 && voltageNoiseDetected)
     {
         spikeCounter = 0;
-        voltageNoiseDetected = true;
+        voltageNoiseDetected = false;
+        error.bit.tvnerr = 0; // reset tvn error
     }
 }
 
