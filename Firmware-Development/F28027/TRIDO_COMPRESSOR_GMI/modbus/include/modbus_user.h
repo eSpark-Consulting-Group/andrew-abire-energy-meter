@@ -24,6 +24,13 @@
 
 __inline int sgn(int x) { return __max(-1, __min(1, x)); }
 
+enum
+{
+  sysHOLD                         = 0x02,
+  sysON                           = 0x01,
+  sysOFF                          = 0x00
+};
+
 struct UINT16_T_BIT_T
 {
   uint16_t BYTE0:8;
@@ -116,7 +123,7 @@ typedef struct
   int16_t  dccurrent_out;  // Controller DC current
   float dccurrent_out_f;
   int16_t  motor_current_out;  // Motor ph-ph current converted to rms
-  uint16_t onoff_in;       // 1 = ON, 0 = OFF
+  uint16_t onoff_in;       // 2 = HOLD, 1 = ON, 0 = OFF
   uint16_t onoff_out;      // 1 = ON, 0 = OFF
   uint16_t mode;           // 2 = DIO, 1 = LOCAL, 0 = REMOTE
   uint16_t communication_fail_action;
@@ -165,9 +172,6 @@ typedef struct
 } TIMEOUT_T;
 
 extern TIMEOUT_T to;
-extern int16_t spikeCounter;
-extern float stableInputVoltage;
-extern bool voltageNoiseDetected;
 
 void modbus_setup(void);
 void modbus_loop(void);

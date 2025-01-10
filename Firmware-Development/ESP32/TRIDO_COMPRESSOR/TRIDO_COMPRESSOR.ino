@@ -48,13 +48,15 @@ const char SYSTEMCTL_VERSION_STRING[] = "2024.12.26";
 
 // 5 seconds Watchdog Timeout
 #define WDT_TIMEOUT 5000
+#define BATTERY_STABLE_TIME 120000
 
 //<! Global Variables / Objects--------------------------------------------------------/
 // General
 char gStr1[42] = "";
 u32 ms100Counter = 0;
 bool clockTicking = false;
-
+bool sysStable = false;
+long batStableTime = 0u;
 // Watchdog
 int wdtResetCount = millis();
 
@@ -1485,7 +1487,7 @@ void setCompressorFunc() {
       }
       break;
     case 1:
-      SetParaBoolstr(65, MENU_LINE1_YPOS, &ctrl.onoff, onoff_arr);  //0=Off, 1=On
+      SetParaU8str(65, MENU_LINE1_YPOS, &ctrl.onoff, 0, 1, onoff_arr);  //0=Off, 1=On
       break;
     case 2:
       SetParaUint(210, MENU_LINE2_YPOS, &status.motor.start_pressure.all, 3, 1, (status.motor.max_psi_sensor.all - 3));
@@ -3775,6 +3777,29 @@ void mbServerRegisterWorkers() {
   mbServer.registerWorker(scada_setting.server_id, WRITE_COIL, &FC05);           // Function 05 - WRITE SINGLE COIL
 }
 
+void checkSystemStability()
+{
+  static long lastSec = 0u;
+
+  if ((ctrl.onoff == sysHOLD) && (millis() - lastSec) >= 5000)
+  {
+    if (sysStable == false)
+    {
+      if ((sysstat.all & 6) != 0 || (syserr.all & 7) != 0)
+      {
+        batStableTime = millis();
+        sysStable = false;
+      }
+      else if ((millis() - batStableTime) > BATTERY_STABLE_TIME)
+      {
+        batStableTime = millis();
+        sysStable = true;
+      }
+    }
+    lastSec = millis();
+  }
+}
+
 //=========================================================================================================================================================================
 // setup()
 //=========================================================================================================================================================================
@@ -3957,6 +3982,7 @@ void setup() {
   mbClient.setTimeout(100);               //Set time out
   mbClient.begin(0);                      // Start ModbusClientRTU background task on core 0
   ctrl.reset = true;                      // request a reset of controller
+  checkSystemStability();
                                           /*
     setCpuFrequencyMhz(10);
     int Freq = getCpuFrequencyMhz();
@@ -4092,17 +4118,19 @@ void loop() {
       }
 
       // Check if we had a low voltage condition, and restore the correct state
-      if( sysstat.bit.low_voltage_warning )
+      if (sysstat.bit.low_voltage_warning)
       {
         if( nPreviousMotorState == MOTOR_STATE_UNDEFINED )
         {
-          if((status.onoff == ON) && (status.rpm.all > 0))
+          if ((ctrl.onoff != sysHOLD) && (status.onoff == ON) && (status.rpm.all > 0))
           {
             nPreviousMotorState = MOTOR_STATE_RUN;
           }
-          else if((status.onoff == ON) && (status.rpm.all == 0))
+          else if ((ctrl.onoff == ON) || (ctrl.onoff == sysHOLD))
           {
             nPreviousMotorState = MOTOR_STATE_HOLD;
+            batStableTime = millis();
+            sysStable = false;
           }
           else
             nPreviousMotorState = MOTOR_STATE_OFF;
@@ -4110,15 +4138,16 @@ void loop() {
       }
       else
       {
+        checkSystemStability();
         // Restore previous state
-        if( nPreviousMotorState == MOTOR_STATE_OFF )
+        if (nPreviousMotorState == MOTOR_STATE_OFF)
         {
           if(( ctrl.mode == LOCAL_MODE ) || ( ctrl.mode == REMOTE_MODE))
           {
             ctrl.onoff = OFF;
           }
         }
-        else if( nPreviousMotorState == MOTOR_STATE_RUN )
+        else if (nPreviousMotorState == MOTOR_STATE_RUN || (ctrl.onoff == sysHOLD && sysStable))
         {
           if(( ctrl.mode == LOCAL_MODE ) || ( ctrl.mode == REMOTE_MODE))
           {
@@ -4129,7 +4158,7 @@ void loop() {
         {
           if(( ctrl.mode == LOCAL_MODE ) || ( ctrl.mode == REMOTE_MODE))
           {
-            ctrl.onoff = OFF;
+            ctrl.onoff = sysHOLD;
           }
         }
 
@@ -4509,6 +4538,11 @@ void MenuBufferPage1() {
     if ((ctrl.onoff == OFF) && (status.onoff == ON)) {
       u8g2.drawStr(65, MENU_LINE1_YPOS, "SysOff");
     }
+    if ((ctrl.onoff == sysHOLD)) {
+      u8g2.setDrawColor(TEXT_COLOR_INVERTED);
+      u8g2.drawStr(65, MENU_LINE1_YPOS, "SysHold");
+      u8g2.setDrawColor(TEXT_COLOR_NORMAL);
+    }
     if ((ctrl.onoff == ON) && (status.onoff == OFF)) {
       u8g2.setDrawColor(TEXT_COLOR_INVERTED);
       u8g2.drawStr(65, MENU_LINE1_YPOS, "MOff");
@@ -4626,6 +4660,12 @@ void MenuBufferPage2() {
     }
     if ((ctrl.onoff == OFF) && (status.onoff == ON)) {
       u8g2.drawStr(75, MENU_LINE1_YPOS, "SysOff");
+    }
+    if ((ctrl.onoff == sysHOLD))
+    {
+      u8g2.setDrawColor(TEXT_COLOR_INVERTED);
+      u8g2.drawStr(65, MENU_LINE1_YPOS, "SysHold");
+      u8g2.setDrawColor(TEXT_COLOR_NORMAL);
     }
     if ((ctrl.onoff == ON) && (status.onoff == OFF)) {
       u8g2.setDrawColor(TEXT_COLOR_INVERTED);

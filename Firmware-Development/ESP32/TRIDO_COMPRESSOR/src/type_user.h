@@ -72,7 +72,7 @@ union IO_T
 typedef struct
 {
   INT16_T rpm;               //Set rpm +/- 1000rpm
-  bool onoff = OFF;          //ON/OFF
+  u8 onoff = OFF;            //ON/OFF/HOLD
   bool reset = false;        //Controller reset request
   bool reset_ok = false;     //Controller reset response
   u8 mode = LOCAL_MODE;      //DIO/LOCAL/REMOTE
