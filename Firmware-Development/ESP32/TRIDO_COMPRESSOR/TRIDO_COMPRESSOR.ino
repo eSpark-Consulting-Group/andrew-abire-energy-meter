@@ -249,11 +249,11 @@ const u8 menuItemPos1[10][2] = {
 };
 
 const u8 menuItemPos2[10][2] = {
-  { 65 - 6, MENU_TITLE_YPOS },
-  { 65 - 6, MENU_LINE1_YPOS },
+  { 58 - 6, MENU_TITLE_YPOS },
+  { 58 - 6, MENU_LINE1_YPOS },
   { 210 - 6, MENU_LINE2_YPOS },
   { 210 - 6, MENU_LINE3_YPOS },
-  { 65 - 6, MENU_LINE4_YPOS },
+  { 58 - 6, MENU_LINE4_YPOS },
   { 0, 0 },
   { 0, 0 },
   { 0, 0 },
@@ -1479,15 +1479,15 @@ void setComFunc1() {
 void setCompressorFunc() {
   switch (selectedItem) {
     case 0:
-      SetParaInt(65, MENU_TITLE_YPOS, &ctrl.rpm.all, 3, -MAXIMUM_RPM, MAXIMUM_RPM);
+      SetParaInt(58, MENU_TITLE_YPOS, &ctrl.rpm.all, 3, -MAXIMUM_RPM, MAXIMUM_RPM);
       if (Key == KEY_ON || Key == KEY_OFF) {
         //show status
-        if (ctrl.onoff == ON) u8g2.drawStr(65, MENU_LINE1_YPOS, "SysOn ");
-        else u8g2.drawStr(65, MENU_LINE1_YPOS, "SysOff");
+        if (ctrl.onoff == ON) u8g2.drawStr(58, MENU_LINE1_YPOS, "SysOn ");
+        else u8g2.drawStr(58, MENU_LINE1_YPOS, "SysOff");
       }
       break;
     case 1:
-      SetParaU8str(65, MENU_LINE1_YPOS, &ctrl.onoff, 0, 1, onoff_arr);  //0=Off, 1=On
+      SetParaU8str(58, MENU_LINE1_YPOS, &ctrl.onoff, 0, 1, onoff_arr);  //0=Off, 1=On
       break;
     case 2:
       SetParaUint(210, MENU_LINE2_YPOS, &status.motor.start_pressure.all, 3, 1, (status.motor.max_psi_sensor.all - 3));
@@ -1496,7 +1496,7 @@ void setCompressorFunc() {
       SetParaUint(210, MENU_LINE3_YPOS, &status.motor.stop_pressure.all, 3, 4, status.motor.max_psi_sensor.all);
       break;
     case 4:
-      setCycletimeFunc(65, MENU_LINE4_YPOS);
+      setCycletimeFunc(58, MENU_LINE4_YPOS);
       break;
   }
 }
@@ -4477,6 +4477,8 @@ void dispError() {
 //----------------------------------------------------------------
 void MenuBufferPage1() {
   INT16_T tmpval;
+  int tmpCycleHrs;
+  int tmpRuntimeHrs;
   menuPage = 1;
   menuTotalItem = 4;
   u8g2.clearBuffer();  // clear lcd ram buffer
@@ -4488,20 +4490,20 @@ void MenuBufferPage1() {
   u8g2.drawStr(MENU_COL1_XPOS, MENU_TITLE_YPOS, "Set RPM");
   int intvar = twos2Int(ctrl.rpm.byte[1], ctrl.rpm.byte[0]);
   xconvert(gStr1, "%03d", intvar);
-  u8g2.drawStr(65, MENU_TITLE_YPOS, gStr1);
+  u8g2.drawStr(58, MENU_TITLE_YPOS, gStr1);
   //draw motor direction icon
   u8g2.setFont(u8g2_font_8x13_t_symbols);
   if ((ctrl.mode == LOCAL_MODE) || (ctrl.mode == REMOTE_MODE)) {
     if (ctrl.rpm.all & 0x8000) {
-      u8g2.drawGlyph(95, MENU_TITLE_YPOS + 2, 8630);
+      u8g2.drawGlyph(88, MENU_TITLE_YPOS + 2, 8630);
     } else {
-      u8g2.drawGlyph(95, MENU_TITLE_YPOS + 2, 8631);
+      u8g2.drawGlyph(88, MENU_TITLE_YPOS + 2, 8631);
     }
   } else if (ctrl.mode == DIO_MODE) {
     if (io.bit.DI2) {
-      u8g2.drawGlyph(95, MENU_TITLE_YPOS + 2, 8631);
+      u8g2.drawGlyph(88, MENU_TITLE_YPOS + 2, 8631);
     } else {
-      u8g2.drawGlyph(95, MENU_TITLE_YPOS + 2, 8630);
+      u8g2.drawGlyph(88, MENU_TITLE_YPOS + 2, 8630);
     }
   }
   u8g2.setFont(u8g2_font_t0_11_mf);  // set font
@@ -4525,32 +4527,32 @@ void MenuBufferPage1() {
   u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE1_YPOS, "Status");
   if (syserr.bit.vfd_heartbeat_err) {
     if (ctrl.onoff == ON) {
-      u8g2.drawStr(65, MENU_LINE1_YPOS, "SysOn");
+      u8g2.drawStr(58, MENU_LINE1_YPOS, "SysOn");
     } else {
-      u8g2.drawStr(65, MENU_LINE1_YPOS, "SysOff");
+      u8g2.drawStr(58, MENU_LINE1_YPOS, "SysOff");
     }
   } else {
     if ((ctrl.onoff == OFF) && (status.onoff == OFF)) {
       u8g2.setDrawColor(TEXT_COLOR_INVERTED);
-      u8g2.drawStr(65, MENU_LINE1_YPOS, "SysOff");
+      u8g2.drawStr(58, MENU_LINE1_YPOS, "SysOff");
       u8g2.setDrawColor(TEXT_COLOR_NORMAL);
     }
     if ((ctrl.onoff == OFF) && (status.onoff == ON)) {
-      u8g2.drawStr(65, MENU_LINE1_YPOS, "SysOff");
+      u8g2.drawStr(58, MENU_LINE1_YPOS, "SysOff");
     }
     if ((ctrl.onoff == sysHOLD)) {
       u8g2.setDrawColor(TEXT_COLOR_INVERTED);
-      u8g2.drawStr(65, MENU_LINE1_YPOS, "SysHold");
+      u8g2.drawStr(58, MENU_LINE1_YPOS, "SysHold");
       u8g2.setDrawColor(TEXT_COLOR_NORMAL);
     }
     if ((ctrl.onoff == ON) && (status.onoff == OFF)) {
       u8g2.setDrawColor(TEXT_COLOR_INVERTED);
-      u8g2.drawStr(65, MENU_LINE1_YPOS, "MOff");
+      u8g2.drawStr(58, MENU_LINE1_YPOS, "MOff");
       u8g2.setDrawColor(TEXT_COLOR_NORMAL);
     }
     if ((ctrl.onoff == ON) && (status.onoff == ON)) {
       u8g2.setDrawColor(TEXT_COLOR_INVERTED);
-      u8g2.drawStr(65, MENU_LINE1_YPOS, "MOn");
+      u8g2.drawStr(58, MENU_LINE1_YPOS, "MOn");
       u8g2.setDrawColor(TEXT_COLOR_NORMAL);
     }
   }
@@ -4567,13 +4569,17 @@ void MenuBufferPage1() {
   tmpval.all = status.motor.tank_pressure.all;
   tmpval.all = twos2Int(tmpval.byte[1], tmpval.byte[0]);
   xconvert(gStr1, "%03dpsi ", tmpval.all);
-  u8g2.drawStr(65, MENU_LINE2_YPOS, gStr1);
+  u8g2.drawStr(58, MENU_LINE2_YPOS, gStr1);
   //run time
   u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE3_YPOS, "Run Time");
-  if (status.motor.runtime_day.all) xconvert(gStr1, "%03dd-%02dh", status.motor.runtime_day.all, status.motor.runtime_hour);
+  if (status.motor.runtime_day.all)
+  { tmpRuntimeHrs = (status.motor.runtime_day.all*24) + status.motor.runtime_hour;
+    if (tmpRuntimeHrs<1000) xconvert(gStr1, "%03dh-%02dm", tmpRuntimeHrs, status.motor.runtime_min);
+    else if (tmpRuntimeHrs<10000) xconvert(gStr1, "%04dh-%02dm", tmpRuntimeHrs, status.motor.runtime_min);
+    else if (tmpRuntimeHrs>9999) xconvert(gStr1, "%03dd-%02dh", status.motor.runtime_day.all, status.motor.runtime_hour);}
   else if (status.motor.runtime_hour) xconvert(gStr1, "%02dh-%02dm", status.motor.runtime_hour, status.motor.runtime_min);
   else xconvert(gStr1, "%02dm-%02ds", status.motor.runtime_min, status.motor.runtime_sec);
-  u8g2.drawStr(65, MENU_LINE3_YPOS, gStr1);
+  u8g2.drawStr(58, MENU_LINE3_YPOS, gStr1);
   //start pressure
   u8g2.drawStr(120, MENU_LINE2_YPOS, "Set Start PSI");
   xconvert(gStr1, "%03dpsi", status.motor.start_pressure.all);
@@ -4584,10 +4590,14 @@ void MenuBufferPage1() {
   u8g2.drawStr(210, MENU_LINE3_YPOS, gStr1);
   //date and time
   u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE4_YPOS, "Time On");
-  if (status.motor.cycletime_day.all) xconvert(gStr1, "%03dd-%02dh", status.motor.cycletime_day.all, status.motor.cycletime_hour);
+  if (status.motor.cycletime_day.all)
+  {   tmpCycleHrs = (status.motor.cycletime_day.all*24) + status.motor.cycletime_hour;
+    if (tmpCycleHrs<1000) xconvert(gStr1, "%03dh-%02dm", tmpCycleHrs, status.motor.cycletime_min);
+    else if (tmpCycleHrs<10000) xconvert(gStr1, "%04dh-%02dm", tmpCycleHrs, status.motor.cycletime_min);
+    else if (tmpCycleHrs>9999) xconvert(gStr1, "%03dd-%02dh", status.motor.cycletime_day.all, status.motor.cycletime_hour);}
   else if (status.motor.runtime_hour) xconvert(gStr1, "%02dh-%02dm", status.motor.cycletime_hour, status.motor.cycletime_min);
   else xconvert(gStr1, "%02dm-%02ds", status.motor.cycletime_min, status.motor.cycletime_sec);
-  u8g2.drawStr(65, MENU_LINE4_YPOS, gStr1);
+  u8g2.drawStr(58, MENU_LINE4_YPOS, gStr1);
   //motor duty
   u8g2.drawStr(120, MENU_LINE4_YPOS, "Duty");
   xconvert(gStr1, "%03d%%", status.motor.duty);
@@ -4664,7 +4674,7 @@ void MenuBufferPage2() {
     if ((ctrl.onoff == sysHOLD))
     {
       u8g2.setDrawColor(TEXT_COLOR_INVERTED);
-      u8g2.drawStr(65, MENU_LINE1_YPOS, "SysHold");
+      u8g2.drawStr(75, MENU_LINE1_YPOS, "SysHold");
       u8g2.setDrawColor(TEXT_COLOR_NORMAL);
     }
     if ((ctrl.onoff == ON) && (status.onoff == OFF)) {
