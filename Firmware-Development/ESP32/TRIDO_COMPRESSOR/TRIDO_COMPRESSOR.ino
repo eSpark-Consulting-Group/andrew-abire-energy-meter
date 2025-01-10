@@ -36,9 +36,9 @@ j:\Projects\Trido\Townes Controller\Software\2024.06.03\ESP32\TRIDO_COMPRESSOR\s
 #include "src\eModbus\src\ModbusServerRTU.h"
 #include "src\eModbus\src\CoilData.h"
 
-const char POWERCTL_VERSION_STRING[] = "2024.12.26";
+const char POWERCTL_VERSION_STRING[] = "2025.01.10";
 //const char HARDWARE_VERSION_STRING[] = "YH_PB01_V5.001";
-const char SYSTEMCTL_VERSION_STRING[] = "2024.12.26";
+const char SYSTEMCTL_VERSION_STRING[] = "2025.01.10";
 
 //<! Set to 0 for manufacturing
 #define DEBUG_MODBUS_ERROR 0
