@@ -48,7 +48,7 @@ const char SYSTEMCTL_VERSION_STRING[] = "2025.01.10";
 
 // 5 seconds Watchdog Timeout
 #define WDT_TIMEOUT 5000
-#define BATTERY_STABLE_TIME 120000
+#define BATTERY_STABLE_TIME 30000
 
 //<! Global Variables / Objects--------------------------------------------------------/
 // General
@@ -4202,7 +4202,11 @@ void loop() {
       }
       // Calculate duty cycle, 0 case is ignored
       if (status.motor.cycletime_total)
-        status.motor.duty = 100 * status.motor.runtime_total / status.motor.cycletime_total;
+      {
+        int dutyRuntimeHrs = (status.motor.runtime_day.all * 24 * 60) + (status.motor.runtime_hour * 60) + status.motor.runtime_min;
+        int dutyCycleHrs = (status.motor.cycletime_day.all * 24 * 60) + (status.motor.cycletime_hour * 60) + status.motor.cycletime_min;
+        status.motor.duty = 100 * dutyRuntimeHrs / dutyCycleHrs;
+      }
       // set_cycletime 5 = 0.5hr, 10 = 1hr, 240 = 24hr
         // cycletime_total = no. of min, set_cycletime = no. of hour x 10
       if (ctrl.onoff == ON && status.motor.cycletime_total > 0 && status.motor.cycletime_total % 60 == 0 && !savedToEeprom)
@@ -4212,11 +4216,15 @@ void loop() {
         {
           eep.motor.saved_record_index = 0;
         }
-          
+
+        if(status.motor.average_duty_alarm_percent.all > 100)   status.motor.average_duty_alarm_percent.all = 100;
+        if(status.motor.single_duty_alarm_percent.all > 100)    status.motor.single_duty_alarm_percent.all = 100;
+
         // record the duty for every hour averaged for 24hr, max 24 records fixed
-          u16 avg_record_val = 0;
-          for (int i = 0; i < NO_OF_RAM_RECORD; i++) {
-            avg_record_val += status.motor.ram_record[i];
+        u16 avg_record_val = 0;
+        for (int i = 0; i < NO_OF_RAM_RECORD; i++)
+        {
+          avg_record_val += status.motor.ram_record[i];
           }
           avg_record_val /= NO_OF_RAM_RECORD;
           status.motor.saved_record[status.motor.saved_record_index] = avg_record_val;
