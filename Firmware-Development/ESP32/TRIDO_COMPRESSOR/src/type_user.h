@@ -208,13 +208,13 @@ struct ERROR_BIT_T
   bool vfd_est_err:1;            //6
   bool rpm_set_low_err:1;        //7
   bool pressure_sensor_error:1;  //8 
-  bool tvdc_noise_error:1;       //9 
-  bool rsvd1:1;                  //10
-  bool rsvd2:1;                  //11
-  bool rsvd3:1;                  //12
-  bool rsvd4:1;                  //13
-  bool rsvd5:1;                  //14
-  bool rsvd6:1;                  //15
+  bool rsvd1:1;                  //9
+  bool rsvd2:1;                  //10
+  bool rsvd3:1;                  //11
+  bool rsvd4:1;                  //12
+  bool rsvd5:1;                  //13
+  bool rsvd6:1;                  //14
+  bool rsvd7:1;                  //15
 };
 
 union SYSTEM_ERR_T

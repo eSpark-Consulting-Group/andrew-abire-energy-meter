@@ -54,8 +54,7 @@ struct ERROR_DATA_BIT_T
   bool rpmerr:1;
   bool settingerr:1;
   bool esterr:1;
-  bool tvnerr:1;
-  bool rsvd:6;
+  bool rsvd:7;
 };
 
 union ERROR_DATA_T

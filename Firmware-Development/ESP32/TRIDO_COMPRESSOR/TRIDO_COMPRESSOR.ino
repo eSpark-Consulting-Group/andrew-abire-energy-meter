@@ -223,7 +223,7 @@ u8 menuPage = 1;
 u8 menuTotalItem = 0;
 u8 toggleHistory = 0;
 u8 numHistoryRecords = 0;
-u16 errorDisplayCount = 0;
+char errorDisplayCount = 0;
 char warnDisplayCount = 0;
 u16 screenSaverCount = 0;
 char userMsg[3][52] = {
@@ -2965,7 +2965,6 @@ void handleData(ModbusMessage msg, u32 token) {
       syserr.bit.rpm_set_low_err = bitRead(rdata[index], 6);  //rpm set low err
       syserr.bit.setting_value_err = bitRead(rdata[index], 7);
       syserr.bit.vfd_est_err = bitRead(rdata[index], 8);  //FOC estimator error
-      syserr.bit.tvdc_noise_error = bitRead(rdata[index], 9);  //vdc noise error
       index++;
 
       //reg 23 Motor coil current in      <-
@@ -2991,7 +2990,7 @@ void handleData(ModbusMessage msg, u32 token) {
 
       //reg 26 Tank Pressure in <-
       status.motor.tank_pressure.all = rdata[index++];  //Tank pressure in     <-
-
+  
       //reg 27
       ctrl.reset_ok = rdata[index++];
       //####################################
@@ -4426,9 +4425,6 @@ void dispError() {
         if (!syserr.bit.vfd_heartbeat_err)
           strcpy(errorMsg, "SNSERR");  //Pressure sensor error
         errorDisplayCount = 0;
-        break;
-      case 9:
-        strcpy(errorMsg, "TVNERR"); // Transient VDC Noise error
         break;
       }
     }
