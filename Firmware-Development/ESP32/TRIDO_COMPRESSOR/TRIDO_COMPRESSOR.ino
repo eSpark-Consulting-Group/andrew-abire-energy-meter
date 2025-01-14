@@ -1993,10 +1993,12 @@ char page12Func1(char input) {
              eep.history[toggleHistory].status.bit.average_duty_high_warning);
     u8g2.drawStr(15, MENU_LINE3_YPOS, gStr1);
 
-    xconvert(gStr1, "REBOOT:%d  ESTERR:%d",
+    xconvert(gStr1, "REBOOT:%d  ESTERR:%d  SYSON: %d  MON: %d",
              eep.history[toggleHistory].status.bit.reboot_pending,
-             eep.history[toggleHistory].err.bit.vfd_est_err);
-    u8g2.drawStr(75, MENU_LINE4_YPOS, gStr1);
+             eep.history[toggleHistory].err.bit.vfd_est_err,
+             eep.history[toggleHistory].status.bit.system_onoff_status,
+             eep.history[toggleHistory].status.bit.motor_onoff_status);
+    u8g2.drawStr(15, MENU_LINE4_YPOS, gStr1);
     u8g2.sendBuffer();
   }
   else
