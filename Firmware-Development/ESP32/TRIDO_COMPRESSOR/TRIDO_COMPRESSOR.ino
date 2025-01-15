@@ -53,7 +53,7 @@ const char SYSTEMCTL_VERSION_STRING[] = "2025.01.10";
 //<! Global Variables / Objects--------------------------------------------------------/
 // General
 char gStr1[42] = "";
-u32 ms100Counter = 0;
+u16 ms100Counter = 0;
 bool clockTicking = false;
 bool sysStable = false;
 long batStableTime = 0u;
@@ -1514,7 +1514,7 @@ void showSavedRecords() {
     u8g2.drawStr(MENU_COL1_XPOS, 10, "Duty Record 2 [Recent->Old]:");
     //Duty record 2 = NO_OF_SAVED_RECORD bytes
     for (int j = 1; j < 5; j++) {
-      for (int i = 0; i < 12; i++) {
+      for (int i = 0; i < 12; i+=2) {
         xconvert(gStr1, "%03d ", status.motor.saved_record[currentIndexSaved--]);
         if (currentIndexSaved < 0) {
           currentIndexSaved += NO_OF_SAVED_RECORD;
@@ -4205,55 +4205,54 @@ void loop() {
       // Calculate duty cycle, 0 case is ignored
       if (status.motor.cycletime_total)
       {
-        int dutyRuntimeHrs = (status.motor.runtime_day.all * 24 * 60) + (status.motor.runtime_hour * 60) + status.motor.runtime_min;
-        int dutyCycleHrs = (status.motor.cycletime_day.all * 24 * 60) + (status.motor.cycletime_hour * 60) + status.motor.cycletime_min;
-        status.motor.duty = 100 * dutyRuntimeHrs / dutyCycleHrs;
+        int dutyRuntime = (status.motor.runtime_day.all * 24 * 60) + (status.motor.runtime_hour * 60) + status.motor.runtime_min;
+        int dutyCycle = (status.motor.cycletime_day.all * 24 * 60) + (status.motor.cycletime_hour * 60) + status.motor.cycletime_min;
+        if (dutyCycle)   status.motor.duty = 100 * ((dutyRuntime*60) + status.motor.runtime_sec)/ ((dutyCycle*60) + status.motor.cycletime_sec);
       }
-      // set_cycletime 5 = 0.5hr, 10 = 1hr, 240 = 24hr
-        // cycletime_total = no. of min, set_cycletime = no. of hour x 10
+
       if (ctrl.onoff == ON && status.motor.cycletime_total > 0 && status.motor.cycletime_total % 60 == 0 && !savedToEeprom)
       {
         savedToEeprom = true;
+        updateEEPROM = true;  // we update the Flash every 24 records averaged only, this action cannot be too frequent
         if (eep.motor.saved_record_index >= NO_OF_SAVED_RECORD)
         {
           eep.motor.saved_record_index = 0;
         }
-
-        if(status.motor.average_duty_alarm_percent.all > 100)   status.motor.average_duty_alarm_percent.all = 100;
-        if(status.motor.single_duty_alarm_percent.all > 100)    status.motor.single_duty_alarm_percent.all = 100;
 
         // record the duty for every hour averaged for 24hr, max 24 records fixed
         u16 avg_record_val = 0;
         for (int i = 0; i < NO_OF_RAM_RECORD; i++)
         {
           avg_record_val += status.motor.ram_record[i];
-          }
-          avg_record_val /= NO_OF_RAM_RECORD;
-          status.motor.saved_record[status.motor.saved_record_index] = avg_record_val;
-          // average duty alarm
-          if (status.motor.duty >= status.motor.average_duty_alarm_percent.all)
-            sysstat.bit.average_duty_high_warning = true;
-          else
-            sysstat.bit.average_duty_high_warning = false;
-          updateEEPROM = true;  // we update the Flash every 48 records averaged only, this action cannot be too frequent
-          currentIndexSaved = status.motor.saved_record_index;
-          status.motor.saved_record_index++;
-          if (startIndexSaved >= NO_OF_RAM_RECORD) {
-            status.motor.ram_record_index = 0;
-          } else {
-            startIndexSaved += NO_OF_RAM_RECORD;
-          }
+        }
+        avg_record_val /= NO_OF_RAM_RECORD;
+        status.motor.saved_record[status.motor.saved_record_index] = avg_record_val;
+        // average duty alarm
+        
+        currentIndexSaved = status.motor.saved_record_index;
+        status.motor.saved_record_index++;
+      
+        if (status.motor.ram_record_index >= NO_OF_RAM_RECORD)
+        {
+          status.motor.ram_record_index = 0;
+        }
 
         // record the duty for every cycletime set, max 48 records,
         // minimum interval = set hr, i.e. minimum 1 day records at 1/2 hr interval
         status.motor.ram_record[status.motor.ram_record_index] = status.motor.duty;
+        currentIndexRam = status.motor.ram_record_index;
+        status.motor.ram_record_index++;
+
         // single duty alarm
         if (status.motor.duty >= status.motor.single_duty_alarm_percent.all)
           sysstat.bit.single_duty_high_warning = true;
         else
           sysstat.bit.single_duty_high_warning = false;
-        currentIndexRam = status.motor.ram_record_index;
-        status.motor.ram_record_index++;
+
+        if (status.motor.duty >= status.motor.average_duty_alarm_percent.all)
+          sysstat.bit.average_duty_high_warning = true;
+        else
+          sysstat.bit.average_duty_high_warning = false;
 
         // //reset runtime
         // status.motor.runtime_sec = 0;
@@ -4744,7 +4743,7 @@ void MenuBufferPage3() {
   if (!toggleDutyRecord) {
     //RAM stored record = NO_OF_RAM_RECORD bytes
     for (int j = 1; j < 5; j++) {
-      for (int i = 0; i < 12; i++) {
+      for (int i = 0; i < 12; i+=2) {
         xconvert(gStr1, "%03d ", status.motor.ram_record[currentIndexRam--]);
         if (currentIndexRam < 0) {
           currentIndexRam += NO_OF_RAM_RECORD;
@@ -4756,7 +4755,7 @@ void MenuBufferPage3() {
     u8g2.drawStr(MENU_COL1_XPOS, 10, "Duty Record 2 [Recent->Old]:");
     //FLASH stored record = NO_OF_SAVED_RECORD bytes
     for (int j = 1; j < 5; j++) {
-      for (int i = 0; i < 12; i++) {
+      for (int i = 0; i < 12; i+=2) {
         xconvert(gStr1, "%03d ", status.motor.saved_record[currentIndexSaved--]);
         if (currentIndexSaved < 0) {
           currentIndexSaved += NO_OF_SAVED_RECORD;
