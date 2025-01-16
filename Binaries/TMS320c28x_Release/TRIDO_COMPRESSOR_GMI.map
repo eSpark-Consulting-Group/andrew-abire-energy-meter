@@ -1,7 +1,7 @@
 ******************************************************************************
              TMS320C2000 Linker PC v22.6.1                     
 ******************************************************************************
->> Linked Fri Jan 10 19:47:27 2025
+>> Linked Thu Jan 16 20:34:25 2025
 
 OUTPUT FILE NAME:   <TRIDO_COMPRESSOR_GMI.out>
 ENTRY POINT SYMBOL: "code_start"  address: 003f7ff6
