@@ -57,10 +57,12 @@ u16 ms100Counter = 0;
 bool clockTicking = false;
 bool sysStable = false;
 long batStableTime = 0u;
+SemaphoreHandle_t semaphoreRTC;
 // Watchdog
-int wdtResetCount = millis();
+long wdtResetCount = millis();
+long setClock = wdtResetCount;
 
-SYSTEM_ERR_T syserr;      // System Error bits
+SYSTEM_ERR_T syserr;  // System Error bits
 SYSTEM_STATUS_T sysstat;  // System Status/Warning bits
 bool faultRecord = false;
 u32 vfdErrCounter = 0;
@@ -1214,26 +1216,33 @@ void setDatetimeFunc(u16 x, u16 y) {
     }
     funcUpdate = true;
   } else if (Key == KEY_ENTER) {
-    // January 21, 2014 at 3am you would call:
-    // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
-    rtc.adjust(DateTime(dnt1.year, dnt1.month, dnt1.day, dnt1.hour, dnt1.minute, dnt1.second));
-    // these lines just to update the screen only
-    dnt.year = dnt1.year;
-    dnt.month = dnt1.month;
-    dnt.day = dnt1.day;
-    dnt.hour = dnt1.hour;
-    dnt.minute = dnt1.minute;
-    dnt.second = dnt1.second;
+    if (xSemaphoreTake(semaphoreRTC, 1000) == pdTRUE)
+    {
+      // January 21, 2014 at 3am you would call:
+      // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
+      rtc.adjust(DateTime(dnt1.year, dnt1.month, dnt1.day, dnt1.hour, dnt1.minute, dnt1.second));
+      // these lines just to update the screen only
+      dnt.year = dnt1.year;
+      dnt.month = dnt1.month;
+      dnt.day = dnt1.day;
+      dnt.hour = dnt1.hour;
+      dnt.minute = dnt1.minute;
+      dnt.second = dnt1.second;
+      xSemaphoreGive(semaphoreRTC);
+    }
+    else
     copyValue = true;
     funcUpdate = true;
     funcResponse = MENU_FUNC_EXIT_SAVE;
   } else if (Key == KEY_ESC) {
+    Serial.println("\nESC in function update");
     copyValue = true;
     funcUpdate = true;
     funcResponse = MENU_FUNC_EXIT_NO_SAVE;
   }
 
   if (funcUpdate) {
+    Serial.println("\nhere in function update");
     xconvert(gStr1, "%d/%02d/%02d %02d:%02d:%02d", dnt1.year, dnt1.month, dnt1.day, dnt1.hour, dnt1.minute, dnt1.second);
     u8g2.drawStr(x, y, gStr1);
     u8g2.drawHLine(x + cusorPos * 6, y + 1, 6);
@@ -3817,6 +3826,8 @@ void setup() {
   u8g2.clearBuffer();                // clear lcd ram buffer
   u8g2.setFont(u8g2_font_t0_12_mf);  // set font
   u8g2.setDrawColor(TEXT_COLOR_NORMAL);
+  semaphoreRTC = xSemaphoreCreateBinary();
+  xSemaphoreGive(semaphoreRTC);
   // External RTC
   if (rtc.begin()) {
     //RTC error
@@ -4085,21 +4096,29 @@ void loop() {
     }
     wdtResetCount = millis();
   }
-  // Read RTC
-  if (rtc.testDev()) {
-    clockTicking = false;
-    if (rtcRetry++ > 5) {
-      rtcFail = true;  //RTC failed
-      dnt = { 2000, 0, 0, 0, 0, 0 };
+
+  if (millis() - setClock >= 500) {
+    if (xSemaphoreTake(semaphoreRTC, 0) == pdTRUE)
+    {
+      // Read RTC
+      if (rtc.testDev()) {
+        clockTicking = false;
+        if (rtcRetry++ > 5) {
+          rtcFail = true;  //RTC failed
+          dnt = { 2000, 0, 0, 0, 0, 0 };
+        }
+      } else {
+        now = rtc.now();  //get time
+        //check date and time value
+        getTime(now, &dnt);
+        clockTicking = true;
+        if (rtcRetry > 0) rtcRetry--;
+        rtcFail = false;
+        //Serial.printf("ms = %lu", millis()); //Watch loop speed
     }
-  } else {
-    now = rtc.now();  //get time
-    //check date and time value
-    getTime(now, &dnt);
-    clockTicking = true;
-    if (rtcRetry > 0) rtcRetry--;
-    rtcFail = false;
-    //Serial.printf("ms = %lu", millis()); //Watch loop speed
+      xSemaphoreGive(semaphoreRTC);
+    }
+    setClock = millis();
   }
 
   //
