@@ -1519,7 +1519,7 @@ void showSavedRecords() {
         if (currentIndexSaved < 0) {
           currentIndexSaved += NO_OF_SAVED_RECORD;
         }
-        u8g2.drawStr(i * 20, MENU_TITLE_YPOS + j * 13, gStr1);
+        u8g2.drawStr((i+0.5) * 20, MENU_TITLE_YPOS + j * 13, gStr1);
       }
     }
   }
@@ -4748,7 +4748,7 @@ void MenuBufferPage3() {
         if (currentIndexRam < 0) {
           currentIndexRam += NO_OF_RAM_RECORD;
         }
-        u8g2.drawStr(i * 20, MENU_TITLE_YPOS + j * 13, gStr1);
+        u8g2.drawStr((i+0.5) * 20, MENU_TITLE_YPOS + j * 13, gStr1);
       }
     }
   } else {
@@ -4760,7 +4760,7 @@ void MenuBufferPage3() {
         if (currentIndexSaved < 0) {
           currentIndexSaved += NO_OF_SAVED_RECORD;
         }
-        u8g2.drawStr(i * 20, MENU_TITLE_YPOS + j * 13, gStr1);
+        u8g2.drawStr((i+0.5) * 20, MENU_TITLE_YPOS + j * 13, gStr1);
       }
     }
   }
