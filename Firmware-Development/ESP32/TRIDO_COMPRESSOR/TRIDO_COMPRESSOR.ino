@@ -4214,9 +4214,9 @@ void loop() {
       {
         savedToEeprom = true;
         updateEEPROM = true;  // we update the Flash every 24 records averaged only, this action cannot be too frequent
-        if (eep.motor.saved_record_index >= NO_OF_SAVED_RECORD)
+        if (status.motor.saved_record_index >= NO_OF_SAVED_RECORD)
         {
-          eep.motor.saved_record_index = 0;
+          status.motor.saved_record_index = 0;
         }
 
         // record the duty for every hour averaged for 24hr, max 24 records fixed
