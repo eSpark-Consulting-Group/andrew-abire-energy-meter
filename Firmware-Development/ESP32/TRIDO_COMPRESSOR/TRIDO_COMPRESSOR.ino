@@ -2533,7 +2533,7 @@ bool restoreEEPROMdata() {
   // Compressor
   status.motor = eep.motor;
   status.motor.set_cycletime_f = (double)status.motor.set_cycletime.all / 10.0f;
-  status.motor.cycletime_total = status.motor.cycletime_sec;
+  status.motor.cycletime_total = status.motor.cycletime_min;
 
 #if DEBUG_WRITEFLASH_FUNCTION
   Serial.println("restoreEEPROM: finished");  //Monitor via serial port
@@ -4422,11 +4422,11 @@ void dispError() {
       {
       case 0:
         if (!syserr.bit.vfd_heartbeat_err)
-          strcpy(errorMsg, "DCLERR");  //DC input over-voltage error
+          strcpy(errorMsg, "OVPERR");  //DC input over-voltage error
         break;
       case 1:
         if (!syserr.bit.vfd_heartbeat_err)
-          strcpy(errorMsg, "DCHERR");  //DC input under-voltage error
+          strcpy(errorMsg, "UVPERR");  //DC input under-voltage error
         break;
       case 2:
         if (!syserr.bit.vfd_heartbeat_err)

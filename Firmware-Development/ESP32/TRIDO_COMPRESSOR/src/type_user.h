@@ -198,23 +198,23 @@ typedef struct
 
 // System Error bits (set = error)
 struct ERROR_BIT_T
-{ 
-  bool over_voltage_err:1;       //0
-  bool under_voltage_err:1;      //1
-  bool over_current_err:1;       //2
-  bool setting_value_err:1;      //3
-  bool data_range_err:1;         //4
-  bool vfd_heartbeat_err:1;      //5
-  bool vfd_est_err:1;            //6
-  bool rpm_set_low_err:1;        //7
-  bool pressure_sensor_error:1;  //8 
-  bool rsvd1:1;                  //9
-  bool rsvd2:1;                  //10
-  bool rsvd3:1;                  //11
-  bool rsvd4:1;                  //12
-  bool rsvd5:1;                  //13
-  bool rsvd6:1;                  //14
-  bool rsvd7:1;                  //15
+{
+  bool over_voltage_err:1;        //0 "OVPERR"  //DC input exceeds max voltage
+  bool under_voltage_err:1;       //1 "UVPERR"  //DC input below min voltage
+  bool over_current_err:1;        //2 "OCPERR"  //Motor over current detected
+  bool setting_value_err:1;       //3 "PSIERR"  //Invalid PSI setting by user
+  bool data_range_err:1;          //4 "ERR001"  //Invalid data range from motor controller
+  bool vfd_heartbeat_err:1;       //5 "ERR002"  //HMI lost communication with controller
+  bool vfd_est_err:1;             //6 "ESTERR"  //FOC estimator error, e.g., controller error
+  bool rpm_set_low_err:1;         //7 "RPMERR"  //RPM below 20 or exceed max set value
+  bool pressure_sensor_error:1;   //8 "SNSERR"  //Sensor beyond zero psi and max psi volts
+  bool rsvd1:1;                   //9
+  bool rsvd2:1;                   //10
+  bool rsvd3:1;                   //11
+  bool rsvd4:1;                   //12
+  bool rsvd5:1;                   //13
+  bool rsvd6:1;                   //14
+  bool rsvd7:1;                   //15
 };
 
 union SYSTEM_ERR_T
@@ -227,22 +227,22 @@ union SYSTEM_ERR_T
 // System status/warning bits
 struct STATUS_BIT_T
 { 
-  bool system_onoff_status:1;      //0
-  bool motor_onoff_status:1;       //1
-  bool low_voltage_warning:1;      //2
-  bool over_current_warning:1;     //3
-  bool single_duty_high_warning:1; //4
-  bool average_duty_high_warning:1;//5
-  bool reboot_pending:1;           //6
-  bool rsvd1:1;                    //7
-  bool rsvd2:1;                    //8
-  bool rsvd3:1;                    //9
-  bool rsvd4:1;                    //10
-  bool rsvd5:1;                    //11
-  bool rsvd6:1;                    //12
-  bool rsvd7:1;                    //13
-  bool rsvd8:1;                    //14
-  bool rsvd9:1;                    //15
+  bool system_onoff_status:1;        //0 "SYSON"   //System On/Off status (1 means ON)
+  bool motor_onoff_status:1;         //1 "MON"     //Motor On/Off status (1 means ON)
+  bool low_voltage_warning:1;        //2 "BATLOW"  //DC input below slow down voltage
+  bool over_current_warning:1;       //3 "OCPWRN"  //Motor current at 80-100% of max
+  bool single_duty_high_warning:1;   //4 "DHIGH1"  //Single duty high warning
+  bool average_duty_high_warning:1;  //5 "DHIGH2"  //average duty high warning
+  bool reboot_pending:1;             //6 "REBOOT"  //reboot is pending
+  bool rsvd1:1;                      //7
+  bool rsvd2:1;                      //8
+  bool rsvd3:1;                      //9
+  bool rsvd4:1;                      //10
+  bool rsvd5:1;                      //11
+  bool rsvd6:1;                      //12
+  bool rsvd7:1;                      //13
+  bool rsvd8:1;                      //14
+  bool rsvd9:1;                      //15
 };
 
 union SYSTEM_STATUS_T
