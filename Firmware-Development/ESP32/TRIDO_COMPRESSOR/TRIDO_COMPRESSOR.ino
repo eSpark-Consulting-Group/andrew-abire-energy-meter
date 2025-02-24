@@ -218,6 +218,7 @@ bool protectScreen = false;
 bool scanMenu = true;
 bool toggleDutyRecord = false;
 bool toggleClearDuty = false;
+bool clearTimers = false;
 bool showFactoryMenu = false;
 FUNCSTATE_E funcResponse = MENU_FUNC_IDLE;
 u8 selectedItem = 0;
@@ -1016,6 +1017,9 @@ void setUserFunc2() {
       break;
     case 2:
       SetParaUint(138 /*lcd xpos*/, MENU_LINE3_YPOS, &status.motor.average_duty_alarm_percent.all, 3 /*length*/, 0 /*min*/, 100 /*max*/);
+      break;
+    case 3:
+      SetParaBoolstr(MENU_COL2_XPOS, MENU_LINE4_YPOS, &clearTimers, yesno_arr);  // 1 = Yes
       break;
   }
 }
@@ -2073,7 +2077,6 @@ u16 getChecksum(unsigned int *buf, u16 bytecount) {
 void prepareWrbuf(unsigned int *buf, u16 *bytecount) {
   u16 index = 0;
   UINT16_T crcval;
-  
   // VFD = 10 bytes
   buf[index++] = eep.ctrl.rpm.byte[0];
   buf[index++] = eep.ctrl.rpm.byte[1];
@@ -4224,10 +4227,21 @@ void loop() {
       // Calculate duty cycle, 0 case is ignored
       if (status.motor.cycletime_total)
       {
-        int dutyRuntime = (status.motor.runtime_day.all * 24 * 60) + (status.motor.runtime_hour * 60) + status.motor.runtime_min;
-        int dutyCycle = (status.motor.cycletime_day.all * 24 * 60) + (status.motor.cycletime_hour * 60) + status.motor.cycletime_min;
-        if (dutyCycle)   status.motor.duty = 100 * ((dutyRuntime*60) + status.motor.runtime_sec)/ ((dutyCycle*60) + status.motor.cycletime_sec);
+          uint32_t dutyRuntime = (status.motor.runtime_day.all * 1440UL) +  // 1440 = 24 * 60
+                                (status.motor.runtime_hour * 60) + 
+                                status.motor.runtime_min;
+
+          uint32_t dutyCycleTime = (status.motor.cycletime_day.all * 1440UL) + 
+                              (status.motor.cycletime_hour * 60) + 
+                              status.motor.cycletime_min;
+
+          if (dutyCycleTime)  
+          {
+              status.motor.duty = (100UL * ((dutyRuntime * 60) + status.motor.runtime_sec)) /
+                                  ((dutyCycleTime * 60) + status.motor.cycletime_sec);
+          }
       }
+
 
       if (ctrl.onoff == ON && status.motor.cycletime_total > 0 && status.motor.cycletime_total % 60 == 0 && !savedToEeprom)
       {
@@ -4846,7 +4860,7 @@ void MenuBufferPage5() {
 //----------------------------------------------------------------
 void MenuBufferPage6() {
   menuPage = 6;
-  menuTotalItem = 3;
+  menuTotalItem = 4;
   u8g2.clearBuffer();  // clear lcd ram buffer
   //scrollbar & title
   u8g2_draw_scrollbar();
@@ -4867,6 +4881,14 @@ void MenuBufferPage6() {
   u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE3_YPOS, "7. Average duty alarm");
   xconvert(gStr1, "%03d%%", status.motor.average_duty_alarm_percent);
   u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE3_YPOS, gStr1);
+  //8.
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE4_YPOS, "8. Clear Disp. Timers");
+  if (clearTimers) {
+    u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE4_YPOS, "YES");
+    resetParams();
+  } else {
+    u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE4_YPOS, "NO");
+  }
 }
 
 //----------------------------------------------------------------
@@ -5051,7 +5073,10 @@ void resetParams()
   status.motor.cycletime_day.all = 0;
   status.motor.cycletime_total = 0;
   // reset duty which is update on LCD every 1 min
-  status.motor.duty = 0;
+  // status.motor.duty = 0;
+  strcpy(userMsg[0], "RUNTIME & TIME-ON TIMERS");
+  strcpy(userMsg[1], "CLEARED SUCCESSFULLY");
+  clearTimers = 0;
 }
 
 //----------------------------------------------------------------
@@ -5112,7 +5137,7 @@ void MenuBufferPage12() {
       faultRecord = false;
       toggleHistory = 0;
       updateEEPROM = true;  //save setting
-      resetParams();
+      // resetParams();
       strcpy(userMsg[1], "FAULT HISTORY RESET!");
     } else {
       strcpy(userMsg[0], "CANNOT RESET HISTORY:" );
