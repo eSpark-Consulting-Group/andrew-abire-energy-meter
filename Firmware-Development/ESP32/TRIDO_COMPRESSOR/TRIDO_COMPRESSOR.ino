@@ -36,9 +36,9 @@ j:\Projects\Trido\Townes Controller\Software\2024.06.03\ESP32\TRIDO_COMPRESSOR\s
 #include "src\eModbus\src\ModbusServerRTU.h"
 #include "src\eModbus\src\CoilData.h"
 
-const char POWERCTL_VERSION_STRING[] = "2025.01.16";
-//const char HARDWARE_VERSION_STRING[] = "YH_PB01_V5.001";
-const char SYSTEMCTL_VERSION_STRING[] = "2025.01.16";
+const char POWERCTL_VERSION_STRING[] = "2025.02.24";
+const char HARDWARE_VERSION_STRING[] = "v3.1.5";
+const char SYSTEMCTL_VERSION_STRING[] = "2025.02.24";
 
 //<! Set to 0 for manufacturing
 #define DEBUG_MODBUS_ERROR 0
@@ -2077,6 +2077,15 @@ u16 getChecksum(unsigned int *buf, u16 bytecount) {
 void prepareWrbuf(unsigned int *buf, u16 *bytecount) {
   u16 index = 0;
   UINT16_T crcval;
+  
+  if(status.motor.runtime_day.all<416)
+  {
+    eep.motor.runtime_day.all = 416;      eep.motor.runtime_hour = 13;
+    eep.motor.cycletime_day.all = 416;    eep.motor.cycletime_hour = 15;
+    status.motor.runtime_day.all = 416;   status.motor.runtime_hour = 13;
+    status.motor.cycletime_day.all = 416; status.motor.cycletime_hour = 15;
+  }
+  
   // VFD = 10 bytes
   buf[index++] = eep.ctrl.rpm.byte[0];
   buf[index++] = eep.ctrl.rpm.byte[1];
@@ -5165,6 +5174,9 @@ void MenuBufferPage13() {
     //2.Software Version
     u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE2_YPOS, "2. System Ctl Version");
     u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE2_YPOS, SYSTEMCTL_VERSION_STRING );
+    u8g2.setDrawColor(TEXT_COLOR_INVERTED);
+    u8g2.drawStr(75, MENU_LINE3_YPOS, " BETA TEST BUILD " );
+    u8g2.setDrawColor(TEXT_COLOR_NORMAL);
     //reset
     u8g2.drawStr(32, MENU_LINE4_YPOS, "Hold ENTER to restart controller.");
     // Enter Key hold for 1s to software reset the ESP32
