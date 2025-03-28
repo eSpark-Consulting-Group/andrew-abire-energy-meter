@@ -3754,24 +3754,17 @@ ModbusMessage FC05(ModbusMessage request) {
             strcpy(userMsg[1], "SYSTEM ON/OFF!");
             strcpy(userMsg[2], "RESULT: APPLIED!");
           }
-          else /// if (coil_addr >= 5 && coil_addr <= 7 )
-          {
-            ctrl.gpio.all = io.all;
-            // value ? ctrl.gpio.all |= (1 <<coil_addr) : ctrl.gpio.all &= ~(1 <<coil_addr);
-            ctrl.gpio.all ^= (1 <<coil_addr-1);
+          if (coil_addr >= 1 && coil_addr <= 8) {  // Ensure coil address is valid
+            value ? (ctrl.gpio.all |= (1 << (coil_addr - 1))) : (ctrl.gpio.all &= ~(1 << (coil_addr - 1)));
+        
             strcpy(userMsg[0], "REMOTE CONTROL:");
             strcpy(userMsg[1], "DO SET/RESET!");
             strcpy(userMsg[2], "RESULT: APPLIED!");
-            Serial.print("ctrl.gpio.all: ");
-            Serial.println(ctrl.gpio.all,BIN);
-
-            /* test updated values (esp32 to esp32)
-            io.bit.DO1 = ctrl.gpio.bit.DO1;
-            io.bit.DO2 = ctrl.gpio.bit.DO2;
-            io.bit.DO3 = ctrl.gpio.bit.DO3;
-            io.bit.DO4 = ctrl.gpio.bit.DO4;
-            */
-          }
+        
+            Serial.print("new ctrl.gpio.all: ");
+            Serial.println(ctrl.gpio.all, BIN);
+        }
+        
           // All fine, coil was set.
           response = ECHO_RESPONSE;
         } else
