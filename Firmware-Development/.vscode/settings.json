@@ -5,6 +5,8 @@
         "main.h": "c",
         "hal.h": "c",
         "timer.h": "c",
-        "scidrv.h": "c"
+        "scidrv.h": "c",
+        "ctrl_obj.h": "c",
+        "iqmathlib.h": "c"
     }
 }
