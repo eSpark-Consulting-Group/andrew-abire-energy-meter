@@ -4075,6 +4075,15 @@ void checkTime() {
 // loop()
 //=========================================================================================================================================================================
 void loop() {
+
+  // Periodically check if keyEschold
+  if (keyEschold) {
+    delay(100);
+    syserr.all = 0;
+    sysstat.all = 0;
+    writeEEPROMdata();  // Save settings
+    ESP.restart();
+  }
   static bool savedToEeprom = true;
   // controller startup reset
   if (startUpReset == true) {
