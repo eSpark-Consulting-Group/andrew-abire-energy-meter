@@ -1013,13 +1013,13 @@ void setUserFunc2() {
       SetParaU8(138 /*lcd xpos*/, MENU_LINE1_YPOS, &status.motor.sensor_psi_offset, 2 /*length*/, 0 /*min*/, 10 /*max*/);
       break;
     case 1:
-      SetParaUint(138 /*lcd xpos*/, MENU_LINE2_YPOS, &status.motor.single_duty_alarm_percent.all, 3 /*length*/, 0 /*min*/, 100 /*max*/);
+      SetParaU8str(138 /*lcd xpos*/, MENU_LINE2_YPOS, &status.motor.pressure_control_method, 0, 2, pressure_control_arr);  //pressure control method [0=STOP MOTOR, 1=DOUT3 OPEN, 2=DOUT3 CLOSE]
       break;
     case 2:
-      SetParaUint(138 /*lcd xpos*/, MENU_LINE3_YPOS, &status.motor.average_duty_alarm_percent.all, 3 /*length*/, 0 /*min*/, 100 /*max*/);
+      SetParaUint(138 /*lcd xpos*/, MENU_LINE3_YPOS, &status.motor.single_duty_alarm_percent.all, 3 /*length*/, 0 /*min*/, 100 /*max*/);
       break;
     case 3:
-      SetParaBoolstr(MENU_COL2_XPOS, MENU_LINE4_YPOS, &clearTimers, yesno_arr);  // 1 = Yes
+      SetParaUint(138 /*lcd xpos*/, MENU_LINE4_YPOS, &status.motor.average_duty_alarm_percent.all, 3 /*length*/, 0 /*min*/, 100 /*max*/);
       break;
   }
 }
@@ -1030,7 +1030,7 @@ void setUserFunc2() {
 void setUserFunc3() {
   switch (selectedItem) {
     case 0:
-      SetParaU8str(MENU_COL2_XPOS, MENU_LINE1_YPOS, &status.motor.pressure_control_method, 0, 2, pressure_control_arr);  //pressure control method [0=STOP MOTOR, 1=DOUT3 OPEN, 2=DOUT3 CLOSE]
+      SetParaBoolstr(MENU_COL2_XPOS, MENU_LINE1_YPOS, &ctrl.communication_fail_action, comfailaction_arr);
       break;
     case 1:
       SetParaBoolstr(MENU_COL2_XPOS, MENU_LINE2_YPOS, &toggleClearDuty, yesno_arr);  //0=NO ACTION, 1=CLEAR
@@ -1631,12 +1631,15 @@ void factoryFunc1() {
       unlockSetting();
       break;
     case 1:
-      SetParaUint(MENU_COL2_XPOS, MENU_LINE2_YPOS, &status.motor.max_psi_sensor.all, 3, 0, MAXIMUM_TANK_PRESSURE);  //maximum psi in psi
+      SetParaBoolstr(MENU_COL2_XPOS, MENU_LINE1_YPOS, &clearTimers, yesno_arr);  // clear timer (1 = Yes)
       break;
     case 2:
-      SetParaUint(MENU_COL2_XPOS, MENU_LINE3_YPOS, &status.motor.zero_psi_sensor_volt.all, 5, 500, 9000);  //zero psi volt in mV
+      SetParaUint(MENU_COL2_XPOS, MENU_LINE2_YPOS, &status.motor.max_psi_sensor.all, 5, 0, MAXIMUM_TANK_PRESSURE);  //maximum psi in psi
       break;
     case 3:
+      SetParaUint(MENU_COL2_XPOS, MENU_LINE3_YPOS, &status.motor.zero_psi_sensor_volt.all, 5, 500, 9000);  //zero psi volt in mV
+      break;
+    case 4:
       SetParaUint(MENU_COL2_XPOS, MENU_LINE4_YPOS, &status.motor.max_psi_sensor_volt.all, 5, 1000, 10000);  //max psi volt in mV
       break;
   }
@@ -1798,18 +1801,15 @@ char page8Func1(char input) {
 
   switch (selectedItem) {
     case 0:
-      SetParaBoolstr(MENU_COL2_XPOS, MENU_LINE1_YPOS, &ctrl.communication_fail_action, comfailaction_arr);
+      if ((funcResponse != MENU_FUNC_CONFIRM) && (funcResponse != MENU_FUNC_WAIT_CONTROLLER)) {
+        board_series = ctrl.motor_model.byte[1];
+        SetParaU8str(MENU_COL2_XPOS, MENU_LINE1_YPOS, &board_series, 0, 1, brdSeries_arr);
+      }
       break;
     case 1:
       if ((funcResponse != MENU_FUNC_CONFIRM) && (funcResponse != MENU_FUNC_WAIT_CONTROLLER)) {
-        board_series = ctrl.motor_model.byte[1];
-        SetParaU8str(MENU_COL2_XPOS, MENU_LINE2_YPOS, &board_series, 0, 1, brdSeries_arr);
-      }
-      break;
-    case 2:
-      if ((funcResponse != MENU_FUNC_CONFIRM) && (funcResponse != MENU_FUNC_WAIT_CONTROLLER)) {
         motor_model = ctrl.motor_model.byte[0];
-        SetParaU8str(MENU_COL2_XPOS, MENU_LINE3_YPOS, &motor_model, 0, 4, mtrModel_arr);
+        SetParaU8str(MENU_COL2_XPOS, MENU_LINE2_YPOS, &motor_model, 0, 4, mtrModel_arr);
       }
       break;
   }
@@ -2078,13 +2078,13 @@ void prepareWrbuf(unsigned int *buf, u16 *bytecount) {
   u16 index = 0;
   UINT16_T crcval;
   
-  if(status.motor.runtime_day.all<416)
-  {
-    eep.motor.runtime_day.all = 416;      eep.motor.runtime_hour = 13;
-    eep.motor.cycletime_day.all = 416;    eep.motor.cycletime_hour = 15;
-    status.motor.runtime_day.all = 416;   status.motor.runtime_hour = 13;
-    status.motor.cycletime_day.all = 416; status.motor.cycletime_hour = 15;
-  }
+  // if(status.motor.runtime_day.all<416) //beta build
+  // {
+  //   eep.motor.runtime_day.all = 416;      eep.motor.runtime_hour = 13;
+  //   eep.motor.cycletime_day.all = 416;    eep.motor.cycletime_hour = 15;
+  //   status.motor.runtime_day.all = 416;   status.motor.runtime_hour = 13;
+  //   status.motor.cycletime_day.all = 416; status.motor.cycletime_hour = 15;
+  // }
   
   // VFD = 10 bytes
   buf[index++] = eep.ctrl.rpm.byte[0];
@@ -4883,21 +4883,19 @@ void MenuBufferPage6() {
   xconvert(gStr1, "[%02d = %d PSI]", status.motor.sensor_psi_offset, status.motor.sensor_psi_offset - 5);
   u8g2.drawStr(168, MENU_LINE1_YPOS, gStr1);  //Hint
   //6.
-  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE2_YPOS, "6. Single duty alarm");
-  xconvert(gStr1, "%03d%%", status.motor.single_duty_alarm_percent);
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE2_YPOS, "6. Pressure Control");
+  if (status.motor.pressure_control_method == 0) xconvert(gStr1, "%s", "STOP MOTOR ");
+  else if (status.motor.pressure_control_method == 1) xconvert(gStr1, "%s", "DOUT3 OPEN ");
+  else if (status.motor.pressure_control_method == 2) xconvert(gStr1, "%s", "DOUT3 CLOSE");
   u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE2_YPOS, gStr1);
   //7.
-  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE3_YPOS, "7. Average duty alarm");
-  xconvert(gStr1, "%03d%%", status.motor.average_duty_alarm_percent);
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE3_YPOS, "7. Single duty alarm");
+  xconvert(gStr1, "%03d%%", status.motor.single_duty_alarm_percent);
   u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE3_YPOS, gStr1);
   //8.
-  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE4_YPOS, "8. Clear Disp. Timers");
-  if (clearTimers) {
-    u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE4_YPOS, "YES");
-    resetParams();
-  } else {
-    u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE4_YPOS, "NO");
-  }
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE4_YPOS, "8. Average duty alarm");
+  xconvert(gStr1, "%03d%%", status.motor.average_duty_alarm_percent);
+  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE4_YPOS, gStr1);
 }
 
 //----------------------------------------------------------------
@@ -4913,11 +4911,8 @@ void MenuBufferPage7() {
   u8g2.setFont(u8g2_font_t0_12_mf);  // set font
   u8g2.drawStr(MENU_COL1_XPOS, MENU_TITLE_YPOS, "[COMPRESSOR SETTINGS]");
   //9.
-  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE1_YPOS, "9. Pressure Control");
-  if (status.motor.pressure_control_method == 0) xconvert(gStr1, "%s", "STOP MOTOR ");
-  else if (status.motor.pressure_control_method == 1) xconvert(gStr1, "%s", "DOUT3 OPEN ");
-  else if (status.motor.pressure_control_method == 2) xconvert(gStr1, "%s", "DOUT3 CLOSE");
-  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE1_YPOS, gStr1);
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE1_YPOS, "9. Comm fail action");
+  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE1_YPOS, comfailaction_arr[ctrl.communication_fail_action]);
   //10.
   u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE2_YPOS, "10. Clear duty records");
   if (toggleClearDuty) {
@@ -4954,14 +4949,11 @@ void MenuBufferPage8() {
   u8g2.setFont(u8g2_font_t0_12_mf);  // set font
   u8g2.drawStr(MENU_COL1_XPOS, MENU_TITLE_YPOS, "[COMPRESSOR SETTINGS]");
   //13.
-  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE1_YPOS, "13. Comm fail action");
-  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE1_YPOS, comfailaction_arr[ctrl.communication_fail_action]);
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE1_YPOS, "13. Controller Series");
+  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE1_YPOS, brdSeries_arr[ctrl.motor_model.byte[1]]);
   //14.
-  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE2_YPOS, "14. Controller Series");
-  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE2_YPOS, brdSeries_arr[ctrl.motor_model.byte[1]]);
-  //15.
-  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE3_YPOS, "15. Motor model");
-  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE3_YPOS, mtrModel_arr[ctrl.motor_model.byte[0]]);
+  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE2_YPOS, "14. Motor model");
+  u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE2_YPOS, mtrModel_arr[ctrl.motor_model.byte[0]]);
 }
 
 //----------------------------------------------------------------
@@ -5174,9 +5166,9 @@ void MenuBufferPage13() {
     //2.Software Version
     u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE2_YPOS, "2. System Ctl Version");
     u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE2_YPOS, SYSTEMCTL_VERSION_STRING );
-    u8g2.setDrawColor(TEXT_COLOR_INVERTED);
-    u8g2.drawStr(75, MENU_LINE3_YPOS, " BETA TEST BUILD " );
-    u8g2.setDrawColor(TEXT_COLOR_NORMAL);
+    // u8g2.setDrawColor(TEXT_COLOR_INVERTED);
+    // u8g2.drawStr(75, MENU_LINE3_YPOS, " BETA TEST BUILD " );
+    // u8g2.setDrawColor(TEXT_COLOR_NORMAL);
     //reset
     u8g2.drawStr(32, MENU_LINE4_YPOS, "Hold ENTER to restart controller.");
     // Enter Key hold for 1s to software reset the ESP32
@@ -5196,25 +5188,34 @@ void MenuBufferPage13() {
 void MenuBufferPage14() {
   menuPage = 14;
   if (status.motor.lock_factory_mode == false) {
-    menuTotalItem = 4;
+    menuTotalItem = 5;
   } else {
     menuTotalItem = 1;
   }
   u8g2.clearBuffer();  // clear lcd ram buffer
   //scrollbar & title
   u8g2_draw_scrollbar();
-  u8g2_draw_arrow(138 - 6, MENU_LINE1_YPOS, 13 /*font_h*/, menuTotalItem /*totalItem*/);
+  u8g2_draw_arrow(138 - 6, (status.motor.lock_factory_mode)? MENU_LINE1_YPOS : MENU_TITLE_YPOS, 13 /*font_h*/, menuTotalItem /*totalItem*/);
   u8g2.setFont(u8g2_font_t0_12_mf);  // set font
   u8g2.drawStr(MENU_COL1_XPOS, MENU_TITLE_YPOS, "[FACTORY SETTING]");
   //1.Factory Mode
-  u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE1_YPOS, "1. Lock Factory Mode");
   if (status.motor.lock_factory_mode == true) {
+    u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE1_YPOS, "  Lock Factory Mode");
     u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE1_YPOS, "LOCKED");
   } else {
-    u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE1_YPOS, "UNLOCKED");
   }
   //2.3.show menu only when unlocked
   if (status.motor.lock_factory_mode == false) {
+    u8g2.drawStr(MENU_COL1_XPOS, MENU_TITLE_YPOS, "  Lock Factory Mode");
+    u8g2.drawStr(MENU_COL2_XPOS, MENU_TITLE_YPOS, "UNLOCKED");
+    //1.Clear Display Timers
+    u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE1_YPOS, "1. Clear Disp Timers");
+    if (clearTimers) {
+      u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE1_YPOS, "YES");
+      resetParams();
+    } else {
+      u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE1_YPOS, "NO");
+    }
     //2.Maximum PSI
     u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE2_YPOS, "2. Maximum PSI");
     xconvert(gStr1, "%05d psi", status.motor.max_psi_sensor.all);
@@ -5224,7 +5225,7 @@ void MenuBufferPage14() {
     xconvert(gStr1, "%05d mV", status.motor.zero_psi_sensor_volt.all);
     u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE3_YPOS, gStr1);
     //4.Max. PSI Volt
-    u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE4_YPOS, "3. Max. PSI volt");
+    u8g2.drawStr(MENU_COL1_XPOS, MENU_LINE4_YPOS, "4. Max. PSI volt");
     xconvert(gStr1, "%05d mV", status.motor.max_psi_sensor_volt.all);
     u8g2.drawStr(MENU_COL2_XPOS, MENU_LINE4_YPOS, gStr1);
   }
