@@ -29,7 +29,7 @@
 
 const char HARDWARE_VERSION_STRING[] = "YH_PB01_V6";  // Rf = 0.005
 //const char HARDWARE_VERSION_STRING[] = "YH_PB01_V5.001";
-const char SOFTWARE_VERSION_STRING[] = "2023.08.01";
+const char SOFTWARE_VERSION_STRING[] = "2025.06.27";
 
 //<! Set to 0 for manufacturing
 #define DEBUG_MODBUS_ERROR 0
