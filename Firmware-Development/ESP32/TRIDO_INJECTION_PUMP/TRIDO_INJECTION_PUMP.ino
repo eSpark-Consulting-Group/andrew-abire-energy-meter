@@ -1816,7 +1816,7 @@ void menuScan(MENU_T *pmenu, MENU_CTRL_T *pctrl, char key) {
           pctrl->menu_offset = menulast.menu_offset[pctrl->parent->layer];
         }
         break;
-      case KEY_UP:
+      case KEY_LEFT:
         if (pctrl->selected->layer == MENU_LAYER_1) {
           menuctrl.initialized = false;
           pActiveMenu = menu;
@@ -1824,7 +1824,7 @@ void menuScan(MENU_T *pmenu, MENU_CTRL_T *pctrl, char key) {
           return;
         }
         break;
-      case KEY_DOWN:
+      case KEY_RIGHT:
         if ((pctrl->selected->layer == MENU_LAYER_1) || (status.motor.total_pump_head == 1)) {
           menuctrl.initialized = false;
           pActiveMenu = menu_setting;
@@ -1832,7 +1832,7 @@ void menuScan(MENU_T *pmenu, MENU_CTRL_T *pctrl, char key) {
           return;
         }
         break;
-      case KEY_LEFT:
+      case KEY_UP:
         p = findNextMenu(pctrl->selected, pctrl, 0);
         if (p != NULL) {
           pctrl->selected = p;
@@ -1860,7 +1860,7 @@ void menuScan(MENU_T *pmenu, MENU_CTRL_T *pctrl, char key) {
           }
         }
         break;
-      case KEY_RIGHT:
+      case KEY_DOWN:
         p = findNextMenu(pctrl->selected, pctrl, 1);
         if (p != NULL) {
           pctrl->selected = p;
@@ -4119,7 +4119,7 @@ void lockKeys(byte lock) {
 //-------------------------------
 // taskScankey
 //-------------------------------
-void taskScankey(void *parameter) {
+void  taskScankey(void *parameter) {
   for (;;) {
     Key = kp.getKey();  //scan a key
     if (Key && (ctrl.startup_setting_completed == true)) {
@@ -5781,15 +5781,18 @@ void setup() {
     Serial.print(Freq);
     Serial.println(" Hz");
     Serial.println(ESP.getFreeHeap());*/
+
   // Watchdog
-  wdtResetCount = millis();
-  esp_task_wdt_config_t esp_task_wdt = {
-    .timeout_ms = WDT_TIMEOUT,
-    .idle_core_mask = 0x3,
-    .trigger_panic = true
-  };
-  esp_task_wdt_init(&esp_task_wdt);       //Enable panic so ESP32 restarts
-  esp_task_wdt_add(NULL);                //Add current thread to WDT watch
+
+  esp_task_wdt_deinit();
+//   wdtResetCount = millis();
+//   esp_task_wdt_config_t esp_task_wdt = {
+//     .timeout_ms = WDT_TIMEOUT,
+//     .idle_core_mask = 0x3,
+//     .trigger_panic = true
+//   };
+//   esp_task_wdt_init(&esp_task_wdt);       //Enable panic so ESP32 restarts
+//   esp_task_wdt_add(NULL);                //Add current thread to WDT watch
 }
 
 //=========================================================================================================================================================================
@@ -5807,26 +5810,26 @@ void loop() {
     }
   }
   // Feed Watchdog every 1s, when program stucks, ESP32 auto-restart
-  if (millis() - wdtResetCount >= 1000) {
-    if (syserr.bit.vfd_heartbeat_err == true) {
-      espResetCounter++;
-    } else {
-      espResetCounter = 0;
-    }
-    // reset ESP32 if communication from controller has been lost for 30 seconds
-    if (espResetCounter > 30) {
-      espResetCounter = 0;
-      delay(10000);  // This causes ESP32 reset by watchdog timeout
-    } else {
-      esp_task_wdt_reset();  //feed watchdog
-    }
-    //Make sure the below loop dnt.second != lastSec still runs when real time clock failed
-    if (rtcFail) {
-      dnt.second = 0;
-      lastSec++;
-    }
-    wdtResetCount = millis();
-  }
+  // if (millis() - wdtResetCount >= 1000) {
+  //   if (syserr.bit.vfd_heartbeat_err == true) {
+  //     espResetCounter++;
+  //   } else {
+  //     espResetCounter = 0;
+  //   }
+  //   // reset ESP32 if communication from controller has been lost for 30 seconds
+  //   if (espResetCounter > 30) {
+  //     espResetCounter = 0;
+  //     delay(10000);  // This causes ESP32 reset by watchdog timeout
+  //   } else {
+  //     esp_task_wdt_reset();  //feed watchdog
+  //   }
+  //   //Make sure the below loop dnt.second != lastSec still runs when real time clock failed
+  //   if (rtcFail) {
+  //     dnt.second = 0;
+  //     lastSec++;
+  //   }
+  //   wdtResetCount = millis();
+  // }
   if (ctrl.startup_setting_completed == true) {
     // Read RTC
     if (rtc.testDev()) {

@@ -1,0 +1,197 @@
+[
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/CodeStartBranch.asm"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/adc.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/clarke.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/clk.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/comp.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/cpu.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/ctrl.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/drv8305.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/filter_fo.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/flash.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/fw.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/gpio.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/hal.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/ipark.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/main.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/memCopy.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/source/RTD.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/source/modbus_slave.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/source/modbus_user.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/source/scidrv.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/offset.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/osc.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/park.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/pid.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/pie.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/pll.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/pwm.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/pwr.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/sci.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/spi.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/svgen.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/svgen_current.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/timer.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/traj.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/traj_heterogeneous.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/usDelay.asm"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/source/userio.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user.c"
+   },
+   {
+      "directory" : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/Release",
+      "command"   : "clang++ -I\"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/modbus/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/user/include\" -I\"D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/include\" -D_INLINE -DF2802xF -DFLASH -DFAST_ROM_V1p7 -xc",
+      "file"      : "D:/GitHub/andrewabire-energymeter/Firmware-Development/F28027/TRIDO_INJECTION_PUMP/wdog.c"
+   }
+]

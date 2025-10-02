@@ -15,4 +15,5 @@
 	<filesToOpen value=""/>
 	<isTargetManual value="false"/>
 	<origin value="E:/ESP32 Project/Incoming/TRIDO_F28027-07-12/TRIDO_F28027"/>
+	<activeTargetConfiguration value="targetConfigs/TMS320F28027.ccxml"/>
 </projectOptions>

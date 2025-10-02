@@ -4,7 +4,7 @@
 
 SHELL = cmd.exe
 
-CG_TOOL_ROOT := C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS
+CG_TOOL_ROOT := C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS
 
 GEN_OPTS__FLAG := 
 GEN_CMDS__FLAG := 
@@ -181,7 +181,7 @@ all: $(OBJS) $(CMD_SRCS) $(LIB_SRCS) $(GEN_CMDS)
 TRIDO_INJECTION_PUMP_ALLinOne.out: $(OBJS) $(CMD_SRCS) $(LIB_SRCS) $(GEN_CMDS)
 	@echo 'Building target: "$@"'
 	@echo 'Invoking: C2000 Linker'
-	"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt -O3 --opt_for_speed=5 --advice:performance=all --define=_INLINE --define=F2802xF --define=FLASH --define=FAST_ROM_V1p7 --diag_warning=225 --diag_wrap=off --display_error_number --abi=coffabi -z -m"TRIDO_INJECTION_PUMP_ALLinOne.map" --stack_size=0x180 --warn_sections -i"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/lib" -i"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --reread_libs --diag_suppress=16002 --diag_suppress=10063-D --diag_wrap=off --display_error_number --xml_link_info="TRIDO_INJECTION_PUMP_ALLinOne_linkInfo.xml" --entry_point=code_start --rom_model -o "TRIDO_INJECTION_PUMP_ALLinOne.out" $(ORDERED_OBJS)
+	"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/bin/cl2000" -v28 -ml -mt -O3 --opt_for_speed=5 --advice:performance=all --define=_INLINE --define=F2802xF --define=FLASH --define=FAST_ROM_V1p7 --diag_warning=225 --diag_wrap=off --display_error_number --abi=coffabi -z -m"TRIDO_INJECTION_PUMP_ALLinOne.map" --stack_size=0x180 --warn_sections -i"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/lib" -i"C:/ti/ccs2031/ccs/tools/compiler/ti-cgt-c2000_22.6.2.LTS/include" --reread_libs --diag_suppress=16002 --diag_suppress=10063-D --diag_wrap=off --display_error_number --xml_link_info="TRIDO_INJECTION_PUMP_ALLinOne_linkInfo.xml" --entry_point=code_start --rom_model -o "TRIDO_INJECTION_PUMP_ALLinOne.out" $(ORDERED_OBJS)
 	@echo 'Finished building target: "$@"'
 	@echo ' '
 
