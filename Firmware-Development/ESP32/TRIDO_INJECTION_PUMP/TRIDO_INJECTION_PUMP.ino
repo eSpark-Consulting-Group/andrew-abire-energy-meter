@@ -47,6 +47,7 @@ const char SOFTWARE_VERSION_STRING[] = "2025.06.27";
 char gStr1[42] = "";
 u32 ms100Counter = 0;
 bool clockTicking = false;
+int menuCount = DEFAULT_MENU;
 
 // Watchdog
 int wdtResetCount = millis();
@@ -1188,8 +1189,28 @@ void drawMenu(MENU_CTRL_T *pctrl) {
   /*if (sysstat.bit.reboot_pending == false) {
     u8g2.drawStr(0, pctrl->parent_text_ypos, "REBOOT PENDING");
   }*/
+  if(pActiveMenu == menuComplete[0]){
+    switch (pctrl->parent->layer) {
+      case MENU_LAYER_0:
+        xconvert(title, "%s", "HOMEPAGE");
+        break;
+      // case MENU_LAYER_1:
+      //   switch (pctrl->parent->id) {
 
-  if (pActiveMenu == menu) {
+      //   }
+      //   break;
+      // case MENU_LAYER_2:
+      //   switch (pctrl->parent->id) {
+
+      //   }
+      //   break;
+      // case MENU_LAYER_3:
+      //   break;
+      // case MENU_LAYER_MAX:
+      //   break;
+    }
+  }
+  else if (pActiveMenu == menuComplete[1]) {
     switch (pctrl->parent->layer) {
       case MENU_LAYER_0:
         xconvert(title, "%s", "PUMP RATES");
@@ -1247,7 +1268,7 @@ void drawMenu(MENU_CTRL_T *pctrl) {
       case MENU_LAYER_MAX:
         break;
     }
-  } else if (pActiveMenu == menu_setting) {
+  } else if (pActiveMenu == menuComplete[2]) {
     switch (pctrl->parent->layer) {
       case MENU_LAYER_0:
         xconvert(title, "%s", "SYSTEM & SETTINGS");
@@ -1300,7 +1321,7 @@ void drawMenu(MENU_CTRL_T *pctrl) {
   if (pctrl->menu_offset >= pctrl->lcd_max_items) {
     p = pctrl->selected - pctrl->lcd_max_items + 1;
     // temporarily solve the problem of the item in the middle for counting the p position
-    if ((pActiveMenu == menu) && ((pctrl->selected->id == 115) || (pctrl->selected->id == 125) || (pctrl->selected->id == 135) || (pctrl->selected->id == 145) || (pctrl->selected->id == 116) || (pctrl->selected->id == 126) || (pctrl->selected->id == 136) || (pctrl->selected->id == 146))) {
+    if ((pActiveMenu == menuComplete[1]) && ((pctrl->selected->id == 115) || (pctrl->selected->id == 125) || (pctrl->selected->id == 135) || (pctrl->selected->id == 145) || (pctrl->selected->id == 116) || (pctrl->selected->id == 126) || (pctrl->selected->id == 136) || (pctrl->selected->id == 146))) {
       p--;
     }
   } else {
@@ -1311,7 +1332,7 @@ void drawMenu(MENU_CTRL_T *pctrl) {
     if ((p->layer == (pctrl->parent->layer + 1)) && (p->state == true)) {
       // update menu text
       // mtext
-      if (pActiveMenu == menu) {
+      if (pActiveMenu == menuComplete[1]) {
         switch (p->id) {
           case 11:
             xconvert(p->ptext, "PH #1                  %05.1f %s", status.motor.pump_rate_f[0], volUnitStr);
@@ -1447,7 +1468,7 @@ void drawMenu(MENU_CTRL_T *pctrl) {
         }
       }
       // update menu_setting text
-      else if (pActiveMenu == menu_setting) {
+      else if (pActiveMenu == menuComplete[2]) {
         switch (p->id) {
           case 11:
             xconvert(p->ptext, "%s", "1. Carbon Credit Summary");
@@ -1678,7 +1699,7 @@ void menuInit(MENU_T *pmenu, MENU_CTRL_T *pctrl) {
 
   // Initialize menu control
   pctrl->parent = pmenu;
-  pctrl->display = pmenu + 1;
+  pctrl->display = pmenu ;
   pctrl->selected = pctrl->display;
   pctrl->lcd_height = MAX_LCD_HEIGHT;
   pctrl->lcd_width = MAX_LCD_WIDTH;
@@ -1699,40 +1720,40 @@ void menuInit(MENU_T *pmenu, MENU_CTRL_T *pctrl) {
   pctrl->lcd_max_items = (pctrl->lcd_height - pctrl->parent_text_ypos) / pctrl->item_offset;
 
   // set unused pump head menu to inactive
-  if (pActiveMenu != menu_setting) {
-    switch (status.motor.total_pump_head) {
-      case 1:
-        // skip the first menu if only one pump head
-        if (pActiveMenu == menu) {
-          pctrl->parent = pActiveMenu + 1;
-          pctrl->display = pActiveMenu + 2;
-          pctrl->selected = pctrl->display;
-        }
-        MenuSetItemState(pctrl, 11, true);
-        MenuSetItemState(pctrl, 12, false);
-        MenuSetItemState(pctrl, 13, false);
-        MenuSetItemState(pctrl, 14, false);
-        break;
-      case 2:
-        MenuSetItemState(pctrl, 11, true);
-        MenuSetItemState(pctrl, 12, true);
-        MenuSetItemState(pctrl, 13, false);
-        MenuSetItemState(pctrl, 14, false);
-        break;
-      case 3:
-        MenuSetItemState(pctrl, 11, true);
-        MenuSetItemState(pctrl, 12, true);
-        MenuSetItemState(pctrl, 13, true);
-        MenuSetItemState(pctrl, 14, false);
-        break;
-      case 4:
-        MenuSetItemState(pctrl, 11, true);
-        MenuSetItemState(pctrl, 12, true);
-        MenuSetItemState(pctrl, 13, true);
-        MenuSetItemState(pctrl, 14, true);
-        break;
-    }
-  }
+  // if (pActiveMenu != menu_setting) {
+  //   switch (status.motor.total_pump_head) {
+  //     case 1:
+  //       // skip the first menu if only one pump head
+  //       if (pActiveMenu == menu) {
+  //         pctrl->parent = pActiveMenu + 1;
+  //         pctrl->display = pActiveMenu + 2;
+  //         pctrl->selected = pctrl->display;
+  //       }
+  //       MenuSetItemState(pctrl, 11, true);
+  //       MenuSetItemState(pctrl, 12, false);
+  //       MenuSetItemState(pctrl, 13, false);
+  //       MenuSetItemState(pctrl, 14, false);
+  //       break;
+  //     case 2:
+  //       MenuSetItemState(pctrl, 11, true);
+  //       MenuSetItemState(pctrl, 12, true);
+  //       MenuSetItemState(pctrl, 13, false);
+  //       MenuSetItemState(pctrl, 14, false);
+  //       break;
+  //     case 3:
+  //       MenuSetItemState(pctrl, 11, true);
+  //       MenuSetItemState(pctrl, 12, true);
+  //       MenuSetItemState(pctrl, 13, true);
+  //       MenuSetItemState(pctrl, 14, false);
+  //       break;
+  //     case 4:
+  //       MenuSetItemState(pctrl, 11, true);
+  //       MenuSetItemState(pctrl, 12, true);
+  //       MenuSetItemState(pctrl, 13, true);
+  //       MenuSetItemState(pctrl, 14, true);
+  //       break;
+  //   }
+  // }
 
   // get maximum items in each layer
   MenuGetMaxValidItemsInLayer(pctrl);
@@ -1787,7 +1808,11 @@ void menuScan(MENU_T *pmenu, MENU_CTRL_T *pctrl, char key) {
 
   // redraw menu
   if (pctrl->update == true) {
-    drawMenu(pctrl);
+    Serial.println("draw menu called");
+#ifdef DEBUG_KEYS
+      drawMenu(pctrl);
+      Serial.print("menuCount: ");Serial.println(menuCount);
+#endif
     pctrl->update = false;
   }
 
@@ -1795,17 +1820,22 @@ void menuScan(MENU_T *pmenu, MENU_CTRL_T *pctrl, char key) {
   MENU_T *p;
 
   if (key) {
+
     switch (key) {
       case KEY_ESC:
+
+#ifdef DEBUG_KEYS
+        Serial.println("---ESC--");
+#endif
         // go to home page
-        if (pActiveMenu == menu_setting) {
+        if (pActiveMenu != menuComplete[DEFAULT_MENU]) {
           menuctrl.initialized = false;
-          pActiveMenu = menu;
+          pActiveMenu = menuComplete[DEFAULT_MENU];
           menuInit(pActiveMenu, &menuctrl);
           return;
         }
         // Do not allow ESC to previous layer when only one pump head
-        if ((status.motor.total_pump_head == 1) && (pctrl->display->layer == MENU_LAYER_2) && (pActiveMenu != menu_setting)) {
+        if ((status.motor.total_pump_head == 1) && (pctrl->display->layer == MENU_LAYER_2) && (pActiveMenu != menuComplete[2])) {
           break;
         }
         p = findParentMenu(pctrl->parent);
@@ -1816,23 +1846,44 @@ void menuScan(MENU_T *pmenu, MENU_CTRL_T *pctrl, char key) {
           pctrl->menu_offset = menulast.menu_offset[pctrl->parent->layer];
         }
         break;
+
       case KEY_LEFT:
-        if (pctrl->selected->layer == MENU_LAYER_1) {
+
+#ifdef DEBUG_KEYS
+        Serial.println("---LEFT--");
+#endif
+        if (pctrl->selected->layer == MENU_LAYER_0) {
           menuctrl.initialized = false;
-          pActiveMenu = menu;
+          if(menuCount > 0){
+            menuCount--;
+            pActiveMenu = menuComplete[menuCount];
+          }
           menuInit(pActiveMenu, &menuctrl);
           return;
         }
         break;
+
       case KEY_RIGHT:
-        if ((pctrl->selected->layer == MENU_LAYER_1) || (status.motor.total_pump_head == 1)) {
+
+#ifdef DEBUG_KEYS
+        Serial.println("---RIGHT--");
+#endif
+        if ((pctrl->selected->layer == MENU_LAYER_0) || (status.motor.total_pump_head == 1)) {
           menuctrl.initialized = false;
-          pActiveMenu = menu_setting;
+          if(menuCount < NUMBER_OF_MENU_SCREENS-1){
+            menuCount++;
+            pActiveMenu = menuComplete[menuCount];
+          }
           menuInit(pActiveMenu, &menuctrl);
           return;
         }
         break;
+
       case KEY_UP:
+
+#ifdef DEBUG_KEYS
+        Serial.println("---UP--");
+#endif
         p = findNextMenu(pctrl->selected, pctrl, 0);
         if (p != NULL) {
           pctrl->selected = p;
@@ -1860,7 +1911,13 @@ void menuScan(MENU_T *pmenu, MENU_CTRL_T *pctrl, char key) {
           }
         }
         break;
+
       case KEY_DOWN:
+
+#ifdef DEBUG_KEYS
+        Serial.println("---DOWN--");
+#endif
+
         p = findNextMenu(pctrl->selected, pctrl, 1);
         if (p != NULL) {
           pctrl->selected = p;
@@ -1878,8 +1935,13 @@ void menuScan(MENU_T *pmenu, MENU_CTRL_T *pctrl, char key) {
           pctrl->menu_offset = 0;
         }
         break;
+
       case KEY_ENTER:
 
+#ifdef DEBUG_KEYS
+        Serial.println("---ENTER--");
+#endif
+        
         if (status.motor.total_pump_head == 1) {
           // 112 we don't want to change stroke rate for 1 pump
           // 115 we don't want to change stroke legnth for 1 pump
@@ -4179,7 +4241,6 @@ void  taskScankey(void *parameter) {
       // Display menu
       menuScan(pActiveMenu, &menuctrl, Key);
     }
-
     vTaskDelay(20 / portTICK_PERIOD_MS);  //20ms
   }
 }
@@ -5704,8 +5765,11 @@ void setup() {
   updateStrokeRateFromRpm(ctrl.rpm.all);
   COMport1Config();
   // MENU
-  pActiveMenu = menu;
+
+  // pActiveMenu = menu;
+  pActiveMenu = menuComplete[DEFAULT_MENU];
   menuInit(pActiveMenu, &menuctrl);
+
   //<! FreeRTOS Task Initialization
   vfdHeartbeatCounter = vfdErrCounter;
   // 100 msec task

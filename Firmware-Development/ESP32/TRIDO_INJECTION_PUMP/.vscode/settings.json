@@ -15,6 +15,7 @@
         "istream": "cpp",
         "system_error": "cpp",
         "cstddef": "cpp",
-        "chrono": "cpp"
+        "chrono": "cpp",
+        "thread": "cpp"
     }
 }

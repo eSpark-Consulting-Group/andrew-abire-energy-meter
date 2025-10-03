@@ -83,6 +83,10 @@ typedef struct
   u8 lcd_max_items;               // No. of printable items on LCD
 } MENU_CTRL_T;
 
+
+
+
+
 // Date & Time
 typedef struct
 {
@@ -177,7 +181,7 @@ typedef struct
   double stroke_length_inch_f[NO_OF_PUMPS] = {1.0,1.0,1.0,1.0};
   PUMP_RECORD_T pump_record;               //Hold the record the pump
   PUMP_CALIBRATION_T pump[NO_OF_PUMPS];    //Hold the calibration for each pump
-  u8 total_pump_head = 1;              //1 / 4 
+  u8 total_pump_head = 1;              //1 / 4             
   u8 pump_number = 0;                  //Pump Number 0, 1, 2, 3
   u8 volunit = 0;                      //0 = Litre, 1 = Gallon
   double conversion_factor_f = 1000.0;  //m3 to L/gal mul. factor for volume

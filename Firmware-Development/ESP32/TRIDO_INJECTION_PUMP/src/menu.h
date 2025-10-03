@@ -3,12 +3,34 @@
 
 #include <Arduino.h>
 
+
+
 MENU_CTRL_T menuctrl;
 MENU_HISTORY_T menulast;
 
 char menuTextBuffer[MENU_STRING_BUFSIZE];
 
-MENU_T menu[] = {
+MENU_T homePageMenu[]={
+
+MENU_LAYER_0,
+MENU_TYPE_LIST,
+menuTextBuffer,
+NULL,
+1,
+true,
+
+
+
+// MENU_LAYER_0 NULL
+MENU_LAYER_0,
+MENU_TYPE_NULL,
+menuTextBuffer,
+NULL,
+2,
+true
+};
+
+MENU_T pumpConfigMenu[] = {
 // MENU_LAYER_0 item 1 [PUMP RATES]
 MENU_LAYER_0,
 MENU_TYPE_LIST,
@@ -249,7 +271,7 @@ NULL,
 true
 };
 
-MENU_T menu_setting[] = {
+MENU_T systemAndSettingMenu[] = {
 // MENU_LAYER_0 item 1 [SYSTEM & SETTINGS]
 MENU_LAYER_0,
 MENU_TYPE_LIST,
@@ -524,5 +546,8 @@ NULL,
 2,
 true
 };
+
+//pointer array of type MENU_T
+MENU_T *menuComplete[NUMBER_OF_MENU_SCREENS]= { homePageMenu , pumpConfigMenu, systemAndSettingMenu}; //master array for all menus
 
 #endif //TYPE_USER_H

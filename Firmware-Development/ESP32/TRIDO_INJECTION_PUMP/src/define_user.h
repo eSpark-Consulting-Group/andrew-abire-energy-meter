@@ -1,6 +1,11 @@
 #ifndef DEFINE_USER_H
 #define DEFINE_USER_H
 
+
+//TESTING
+
+#define DEBUG_KEYS
+
 // NO. OF PUMPS
 #define NO_OF_PUMPS           4    // 4 units
 
@@ -97,6 +102,8 @@
 //
 // MENU
 //
+#define NUMBER_OF_MENU_SCREENS 3
+#define DEFAULT_MENU 0
 
 #define MENU_STRING_BUFSIZE    42  // each character 6 dots
 //PAGE 1
