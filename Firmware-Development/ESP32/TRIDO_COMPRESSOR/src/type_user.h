@@ -168,7 +168,7 @@ typedef struct
   u16 max_coil = 9;           //For calculation of maxmimum user defined address
   u16 max_discrete = 0;       //For calculation of maxmimum user defined address
   u16 max_inputreg = 0;       //For calculation of maxmimum user defined address
-  u16 max_holdreg = 127;      //For calculation of maxmimum user defined address
+  u16 max_holdreg = 128;      //For calculation of maxmimum user defined address
 } SCADA_SETTING_T;
 
 // SCADA Serial Port Config

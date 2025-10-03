@@ -3339,6 +3339,14 @@ ModbusMessage FC03(ModbusMessage request) {
           } else
             return response;
         }
+        if (reg_address == scada_setting.holdreg_addr.all + 127) {
+          if (reg_count <= words - 1) {
+            response.add((u16)io.all);
+            reg_address++;
+            reg_count++;
+          } else
+            return response;
+        }
         //<!Maximum support per request is 128 words
       } else  //if the requested function is not supported
         // Set up error response.
@@ -3395,7 +3403,7 @@ ModbusMessage FC06(ModbusMessage request) {
         } else                       //if the requested data is not in range
         {
           strcpy(userMsg[0], "REMOTE CONTROL:");
-          strcpy(userMsg[1], "SYSTEM ON/OFF!");
+          strcpy(userMsg[1], "SET RPM!");
           strcpy(userMsg[2], "RESULT: WRONG VALUE!");
           // Set up error response.
           response.setError(request.getServerID(), request.getFunctionCode(), ILLEGAL_DATA_VALUE);
@@ -3643,6 +3651,29 @@ ModbusMessage FC06(ModbusMessage request) {
           response.setError(request.getServerID(), request.getFunctionCode(), ILLEGAL_DATA_VALUE);
         }
       }
+      //<! Change DO state
+      else if (address == scada_setting.holdreg_addr.all + 127) {
+        // Extract only DO bits (4–7)
+        uint16_t doValue = words & 0x00F0;
+
+        // If any DO bits are valid, apply them
+        if (doValue <= 0x00F0) {
+            ctrl.gpio.all = (ctrl.gpio.all & 0x000F) | doValue;
+
+            updateEEPROM = true;
+            strcpy(userMsg[0], "REMOTE CONTROL:");
+            strcpy(userMsg[1], "DO SET/RESET!!");
+            strcpy(userMsg[2], "RESULT: APPLIED!");
+            response = ECHO_RESPONSE;
+            io.all = ctrl.gpio.all;
+        } else {
+            strcpy(userMsg[0], "REMOTE CONTROL:");
+            strcpy(userMsg[1], "DO SET/RESET!");
+            strcpy(userMsg[2], "RESULT: WRONG VALUE!");
+            response.setError(request.getServerID(), request.getFunctionCode(), ILLEGAL_DATA_VALUE);
+        }
+      }
+
       //<!Any other non-supported functions
       else {
         // Set up error response.
@@ -3761,8 +3792,8 @@ ModbusMessage FC05(ModbusMessage request) {
             strcpy(userMsg[1], "DO SET/RESET!");
             strcpy(userMsg[2], "RESULT: APPLIED!");
         
-            Serial.print("new ctrl.gpio.all: ");
-            Serial.println(ctrl.gpio.all, BIN);
+            // Serial.print("new ctrl.gpio.all: ");
+            // Serial.println(ctrl.gpio.all, BIN);
         }
         
           // All fine, coil was set.
